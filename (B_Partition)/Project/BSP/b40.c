@@ -1,0 +1,26 @@
+#include "b40.h"
+
+void b40_init(void)
+{
+#if B40_RESET_CTRL
+	gpio_init(GPIOA,GPIO_MODE_OUT_PP,GPIO_OSPEED_50MHZ,GPIO_PIN_11);
+#endif /* B40_RESET_CTRL = 1 */
+	
+#if B40_TS_SW_CTRL
+	gpio_init(GPIOA,GPIO_MODE_OUT_PP,GPIO_OSPEED_50MHZ,GPIO_PIN_12);
+#endif /* B40_RESET_CTRL = 1 */
+
+#if B40_CONET_STATUS
+	gpio_init(GPIOA,GPIO_MODE_IN_FLOATING,GPIO_OSPEED_50MHZ,GPIO_PIN_13);
+#endif /* B40_RESET_CTRL = 1 */
+}
+
+
+
+
+
+
+
+
+
+
