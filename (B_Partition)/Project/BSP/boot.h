@@ -7,6 +7,8 @@ typedef void (*load_a)(void);
 
 /* 选择分区 */
 void bootloader_brance(void);
+/* Bootloader命令行事件处理 */
+void bootloader_event(uint8_t *data,uint16_t datalen);
 /* 保存 SP 指针 */
 __asm void MSR_SP(uint32_t addr);
 /* 保存 PC 指针 */

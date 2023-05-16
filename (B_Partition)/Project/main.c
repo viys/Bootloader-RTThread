@@ -27,11 +27,24 @@ int main(void)
 	
 	while(1)
 	{
+		/* Bootloader命令行程序 */
+		if(U0CB.URxDataOUT != U0CB.URxDataIN){
+			/* 命令处理 */
+			bootloader_event(U0CB.URxDataOUT->start,U0CB.URxDataOUT->end - U0CB.URxDataOUT->start + 1);
+			U0CB.URxDataOUT ++;
+			
+			if(U0CB.URxDataOUT == U0CB.URxDataEND){
+				U0CB.URxDataOUT = &U0CB.URxDataPtr[0];
+			}
+		
+		}
+		
+		
 		
 		if(FlagGET(BootSta_Flag,UPDATA_A_FLAG)){
 			/* 更新A区 */
 			
-			u0_printf("长度%d字节\r\n",OTA_Info.Firelen[UpdataA.W25q64_blockNB]);
+			u0_printf("Length: %d bytes\r\n",OTA_Info.Firelen[UpdataA.W25q64_blockNB]);
 			
 			/* 保证将要写入的数据是4字节对齐的 */
 			if(OTA_Info.Firelen[UpdataA.W25q64_blockNB]%4 == 0){
@@ -77,7 +90,7 @@ int main(void)
 				
 				/* 清空标志位 */
 				FlagCLR(BootSta_Flag,UPDATA_A_FLAG);
-				u0_printf("长度错误\r\n");
+				u0_printf("length Wrong\r\n");
 			}
 		}
 	}
