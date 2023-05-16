@@ -8,6 +8,7 @@
 
 #define SPI_FLASH_PageSize              256
 #define SPI_FLASH_PerWritePageSize      256
+#define SPI_FLASH_BlockSize				64*1024
 
 /*命令定义-开头*/
 #define W25X_WriteEnable		      	0x06 

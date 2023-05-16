@@ -11,13 +11,13 @@ load_a LOAD_A;
 
 void bootloader_brance(void)
 {
-	/* OTA_SET_FLAG 设为0x11111111避免大小端问题 */
 	if(OTA_Info.OTA_flag == OTA_SET_FLAG){
 		u0_printf("OTA更新\r\n");
-	
+		BootSta_Flag |= UPDATA_A_FLAG;
+		UpdataA.W25q64_blockNB = 0;
 	}else{
 		u0_printf("跳转A分区\r\n");
-//		load_A(GD32_A_SADDR);
+		load_A(GD32_A_SADDR);
 	}
 }
 
@@ -56,22 +56,8 @@ void at24cxx_read_OTA_info(void)
 	/* 存取更新标志位 OTA_Info */
 	eeprom_buffer_read_timeout((uint8_t *)&OTA_Info,EEP_FIRST_PAGE,OTA_InfoCB_SIZE);
 
-//	u0_printf("%s\r\n",&OTA_Info.OTA_flag);
+	u0_printf("%x\r\n",OTA_Info.OTA_flag);
 }
-
-
-void w25q64_read_OTA_info(void)
-{
-	/* 此处会出现大小端问题 */
-	memset(&OTA_Info,0,OTA_InfoCB_SIZE);
-	//保存OTA_Info(待补充)
-	w25q64_read((uint8_t *)&OTA_Info,0,OTA_InfoCB_SIZE);
-	
-	BigLittleSwap32(OTA_Info.OTA_flag);
-	
-//	u0_printf("%s\r\n",&OTA_Info.OTA_flag);
-}
-
 
 void at24cxx_write_OTA_info(void)
 {
@@ -84,4 +70,15 @@ void at24cxx_write_OTA_info(void)
 		delay_1ms(5);
 	}
 }
+
+
+void w25q64_read_OTA_info(void)
+{
+	/* 此处会出现大小端问题 */
+	memset(&OTA_Info,0,OTA_InfoCB_SIZE);
+	//保存OTA_Info(待补充)
+	w25q64_read((uint8_t *)&OTA_Info,0,OTA_InfoCB_SIZE);
+}
+
+
 
