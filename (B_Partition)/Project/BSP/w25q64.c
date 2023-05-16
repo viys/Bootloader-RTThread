@@ -109,13 +109,5 @@ void w25q64_test(void)
 
 }
 
-void w25q64_read_OTA_info(void)
-{
-	/* 此处会出现大小端问题 */
-	memset(&OTA_Info,0,OTA_InfoCB_SIZE);
-	//保存OTA_Info(待补充)
-	w25q64_read((uint8_t *)&OTA_Info,0,OTA_InfoCB_SIZE);
-	
-//	u0_printf("%d\r\n",OTA_Info.OTA_flag);
-}
+
 

@@ -13,5 +13,12 @@ __asm void MSR_SP(uint32_t addr);
 void load_A(uint32_t addr);
 /* 跳转A区前外设寄存器清理 */
 void bootloader_peripheral_clear(void);
+/* nflash 查看更新标志位 */
+void w25q64_read_OTA_info(void);
+/* eeprom 查看更新标志位 */
+void at24cxx_read_OTA_info(void);
+/* 查看将读取的 OTA_flag 值 */
+void print_OTA_update_value(uint8_t sw);
+
 
 #endif /*__BOOT_H */

@@ -5,21 +5,21 @@
 #include "fmc.h"
 #include "main.h"
 #include "boot.h"
+#include "at24cxx.h"
 
 OTA_InfoCB OTA_Info;
-uint8_t rdata[256];
 
 int main(void)
 {
 	systick_config();
 	
 	uart0_init(921600);
+	
+	i2c_eeprom_init();
 
 	w25q64_init();
 	
-	w25q64_read_OTA_info();
-	
-	u0_printf("进入B分区\r\n");
+	at24cxx_read_OTA_info();
 	
 	bootloader_brance();
 	

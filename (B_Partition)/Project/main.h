@@ -20,7 +20,18 @@
 #define GD32_A_SPAGE		GD32_B_PAGE_NUM									//A区起始扇区编号
 #define GD32_A_SADDR		GD32_FLASH_SADDR + GD32_A_SPAGE*GD32_PAGE_SIZE	//A区起始地址
 
-#define OTA_SET_FLAG		0x11111111
+#define OTA_SET_FLAG		0x01020304 //目前存在大小端问题
+
+/* uint16_t 大小端互换 */
+#define BigLittleSwap16(A)  ((((uint16_t)(A) & 0xff00) >> 8) | \
+							(((uint16_t)(A) & 0x00ff) << 8))
+ 
+/* uint32_t 大小端互换 */
+#define BigLittleSwap32(A)  ((((uint32_t)(A) & 0xff000000) >> 24) | \
+							(((uint32_t)(A) & 0x00ff0000) >> 8) | \
+							(((uint32_t)(A) & 0x0000ff00) << 8) | \
+							(((uint32_t)(A) & 0x000000ff) << 24))
+
 
 typedef struct{
 	uint32_t OTA_flag;
@@ -29,7 +40,6 @@ typedef struct{
 
 
 extern OTA_InfoCB OTA_Info;
-
 
 #endif /* __MAIN_H */
 

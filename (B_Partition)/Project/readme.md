@@ -1,3 +1,7 @@
+# 版本说明
+
+## GD
+
 /*!
     \file    readme.txt
     \brief   description of led spark with systick, USART print and key example
@@ -22,7 +26,7 @@ are permitted provided that the following conditions are met:
     3. Neither the name of the copyright holder nor the names of its contributors 
        may be used to endorse or promote products derived from this software without 
        specific prior written permission.
-
+    
     THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
 AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
 WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
@@ -35,5 +39,31 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-  This example is based on the GD32107C-EVAL-V1.3 board, it provides a
-description of SysTick configuration, use of EVAL_COM and key.
+## viys
+
+### A区文件配置:
+
+1. 修改**keil**烧录起始地址为`0x08005000`.
+
+2. 修改` system_gd32f10x.c`对应部分.
+
+   ```c
+   #define VECT_TAB_OFFSET  (uint32_t)0x000            /* vector table base offset */
+   ⏬
+   #define VECT_TAB_OFFSET  (uint32_t)0x5000            /* vector table base offset */
+   ```
+
+### B区文件配置:
+
+1. 修改**keil**烧录结束地址为`0x4FFF`.
+
+2. `main.h`文件存放芯片的特殊信息,更换芯片需修改.
+
+   ```c
+   /*
+    * GD32 RAM	ROM  bank0_size bank1_size
+    * 		64k	512k 	2k			4k
+    */
+   ```
+
+   

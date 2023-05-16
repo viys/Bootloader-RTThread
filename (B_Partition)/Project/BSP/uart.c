@@ -4,8 +4,8 @@ uint8_t U0_RxBuff[U0_RX_SIZE];
 uint8_t U0_TxBuff[U0_TX_SIZE];
 UCB_CB 	U0CB;
 
-uint8_t U2_RxBuff[U0_RX_SIZE];
-uint8_t U2_TxBuff[U0_TX_SIZE];
+uint8_t U2_RxBuff[U2_RX_SIZE];
+uint8_t U2_TxBuff[U2_TX_SIZE];
 UCB_CB 	U2CB;
 
 static void u0rx_ptr_init(void)

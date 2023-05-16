@@ -398,15 +398,30 @@
               <FileType>1</FileType>
               <FilePath>..\systick.c</FilePath>
             </File>
+            <File>
+              <FileName>main.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\main.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
           <GroupName>BSP</GroupName>
           <Files>
             <File>
+              <FileName>boot.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BSP\boot.c</FilePath>
+            </File>
+            <File>
               <FileName>w25q64.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\BSP\w25q64.c</FilePath>
+            </File>
+            <File>
+              <FileName>at24cxx.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BSP\at24cxx.c</FilePath>
             </File>
             <File>
               <FileName>uart.c</FileName>
@@ -424,11 +439,6 @@
               <FilePath>..\BSP\fmc.c</FilePath>
             </File>
             <File>
-              <FileName>boot.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\BSP\boot.c</FilePath>
-            </File>
-            <File>
               <FileName>bc28.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\BSP\bc28.c</FilePath>
@@ -437,6 +447,11 @@
               <FileName>b40.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\BSP\b40.c</FilePath>
+            </File>
+            <File>
+              <FileName>i2c.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BSP\i2c.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -1162,15 +1177,30 @@
               <FileType>1</FileType>
               <FilePath>..\systick.c</FilePath>
             </File>
+            <File>
+              <FileName>main.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\main.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
           <GroupName>BSP</GroupName>
           <Files>
             <File>
+              <FileName>boot.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BSP\boot.c</FilePath>
+            </File>
+            <File>
               <FileName>w25q64.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\BSP\w25q64.c</FilePath>
+            </File>
+            <File>
+              <FileName>at24cxx.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BSP\at24cxx.c</FilePath>
             </File>
             <File>
               <FileName>uart.c</FileName>
@@ -1188,11 +1218,6 @@
               <FilePath>..\BSP\fmc.c</FilePath>
             </File>
             <File>
-              <FileName>boot.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\BSP\boot.c</FilePath>
-            </File>
-            <File>
               <FileName>bc28.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\BSP\bc28.c</FilePath>
@@ -1201,6 +1226,11 @@
               <FileName>b40.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\BSP\b40.c</FilePath>
+            </File>
+            <File>
+              <FileName>i2c.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BSP\i2c.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -1888,15 +1918,30 @@
               <FileType>1</FileType>
               <FilePath>..\systick.c</FilePath>
             </File>
+            <File>
+              <FileName>main.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\main.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
           <GroupName>BSP</GroupName>
           <Files>
             <File>
+              <FileName>boot.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BSP\boot.c</FilePath>
+            </File>
+            <File>
               <FileName>w25q64.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\BSP\w25q64.c</FilePath>
+            </File>
+            <File>
+              <FileName>at24cxx.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BSP\at24cxx.c</FilePath>
             </File>
             <File>
               <FileName>uart.c</FileName>
@@ -1914,11 +1959,6 @@
               <FilePath>..\BSP\fmc.c</FilePath>
             </File>
             <File>
-              <FileName>boot.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\BSP\boot.c</FilePath>
-            </File>
-            <File>
               <FileName>bc28.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\BSP\bc28.c</FilePath>
@@ -1927,6 +1967,11 @@
               <FileName>b40.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\BSP\b40.c</FilePath>
+            </File>
+            <File>
+              <FileName>i2c.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BSP\i2c.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -2614,15 +2659,30 @@
               <FileType>1</FileType>
               <FilePath>..\systick.c</FilePath>
             </File>
+            <File>
+              <FileName>main.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\main.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
           <GroupName>BSP</GroupName>
           <Files>
             <File>
+              <FileName>boot.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BSP\boot.c</FilePath>
+            </File>
+            <File>
               <FileName>w25q64.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\BSP\w25q64.c</FilePath>
+            </File>
+            <File>
+              <FileName>at24cxx.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BSP\at24cxx.c</FilePath>
             </File>
             <File>
               <FileName>uart.c</FileName>
@@ -2640,11 +2700,6 @@
               <FilePath>..\BSP\fmc.c</FilePath>
             </File>
             <File>
-              <FileName>boot.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\BSP\boot.c</FilePath>
-            </File>
-            <File>
               <FileName>bc28.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\BSP\bc28.c</FilePath>
@@ -2653,6 +2708,11 @@
               <FileName>b40.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\BSP\b40.c</FilePath>
+            </File>
+            <File>
+              <FileName>i2c.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BSP\i2c.c</FilePath>
             </File>
           </Files>
         </Group>

@@ -2,18 +2,21 @@
 #include "main.h"
 #include "uart.h"
 #include "fmc.h"
+#include "at24cxx.h"
+#include "string.h"
+#include "w25q64.h"
 
 load_a LOAD_A;
 
 void bootloader_brance(void)
 {
 	/* OTA_SET_FLAG 设为0x11111111避免大小端问题 */
-	if(OTA_Info.OTA_flag == OTA_SET_FLAG){
+	if(BigLittleSwap32(OTA_Info.OTA_flag) == OTA_SET_FLAG){
 		u0_printf("OTA更新\r\n");
 	
 	}else{
-		u0_printf("跳转分区\r\n");
-		load_A(GD32_A_SADDR);
+		u0_printf("跳转A分区\r\n");
+//		load_A(GD32_A_SADDR);
 	}
 }
 
@@ -44,3 +47,25 @@ void bootloader_peripheral_clear(void)
 	gpio_deinit(GPIOB);
 	spi_i2s_deinit(SPI0);
 }
+
+void at24cxx_read_OTA_info(void)
+{
+	/* 清理 OTA_Info */
+	memset(&OTA_Info,0,OTA_InfoCB_SIZE);
+	/* 存取更新标志位 OTA_Info */
+	eeprom_buffer_read_timeout((uint8_t *)&OTA_Info,EEP_FIRST_PAGE,OTA_InfoCB_SIZE);
+
+//	u0_printf("%s\r\n",&OTA_Info.OTA_flag);
+}
+
+
+void w25q64_read_OTA_info(void)
+{
+	/* 此处会出现大小端问题 */
+	memset(&OTA_Info,0,OTA_InfoCB_SIZE);
+	//保存OTA_Info(待补充)
+	w25q64_read((uint8_t *)&OTA_Info,0,OTA_InfoCB_SIZE);
+	
+//	u0_printf("%s\r\n",&OTA_Info.OTA_flag);
+}
+

@@ -39,9 +39,7 @@ void w25q64_erase64k(uint8_t blockNB);
 void w25q64_page_write(uint8_t *wbuff,uint16_t pageNB);
 /* w25q64 读数据 */
 void w25q64_read(uint8_t *rbuff,uint16_t addr,uint32_t datalen);
-/* 查看更新标志位 */
-void w25q64_read_OTA_info(void);
-
+/* 测试 w25q64 */
 void w25q64_test(void);
 
 #endif /* __W25Q64_H */
