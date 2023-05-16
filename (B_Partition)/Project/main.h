@@ -22,9 +22,12 @@
 #define GD32_A_SPAGE		GD32_B_PAGE_NUM									//A区起始扇区编号
 #define GD32_A_SADDR		GD32_FLASH_SADDR + GD32_A_SPAGE*GD32_PAGE_SIZE	//A区起始地址
 
-#define UPDATA_A_FLAG		0x00000001
+#define OTA_SET_FLAG		0x01020304	//需要OTA更新A区对比位
 
-#define OTA_SET_FLAG		0x01020304 //目前存在大小端问题
+/* 状态标志位 */
+#define UPDATA_A_FLAG		0x00000001	//A区需要更新状态位
+#define IAP_XMODEC_FLAG		0x00000002	//串口IAP开始传输状态位
+#define IAP_XMODED_FLAG		0x00000004	//串口IAP数据处理状态位
 
 /* uint16_t 大小端互换 */
 #define BigLittleSwap16(A)  ((((uint16_t)(A) & 0xff00) >> 8) | \
@@ -50,6 +53,9 @@ typedef struct{
 typedef struct{
 	uint8_t Updata_buff[GD32_PAGE_SIZE];
 	uint32_t W25q64_blockNB;
+	uint32_t Xmodem_Timer;
+	uint32_t xmodem_NB;
+	uint32_t Xmodem_CRC;
 }UpDataA_CB;
 #define UPDATAA_CB_SIZE	sizeof(UpDataA_CB)
 

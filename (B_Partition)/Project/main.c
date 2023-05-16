@@ -27,6 +27,7 @@ int main(void)
 	
 	while(1)
 	{
+		delay_1ms(10);
 		/* Bootloader命令行程序 */
 		if(U0CB.URxDataOUT != U0CB.URxDataIN){
 			/* 命令处理 */
@@ -39,8 +40,19 @@ int main(void)
 		
 		}
 		
+		/* 串口IAP下载代码 */
+		if(FlagGET(BootSta_Flag,IAP_XMODEC_FLAG)){
+			/* 达到Xmodem约定时间 */
+			if(UpdataA.Xmodem_Timer >= 100){
+				/* 发送下载起始位 */
+				u0_printf("C");
+				/* 计数值清零 */
+				UpdataA.Xmodem_Timer = 0;
+			}
+			UpdataA.Xmodem_Timer ++;
+		}
 		
-		
+		/* 将外部FLAH中代码写入A区 */
 		if(FlagGET(BootSta_Flag,UPDATA_A_FLAG)){
 			/* 更新A区 */
 			
@@ -51,8 +63,10 @@ int main(void)
 				/* 长度正确 */
 				
 				/* 擦除 GD32 内部 FLASH */
-				gd32_erase_flash(GD32_A_SPAGE,GD32_A_PAGE_NUM);
+				gd32_erase_flash(GD32_A_SADDR,GD32_A_PAGE_NUM);
 				
+				
+				/******************************** 43.8:44/ 
 				/* 更新代码 */
 				for(uint8_t i=0; i<OTA_Info.Firelen[UpdataA.W25q64_blockNB]/GD32_PAGE_SIZE; i++){
 					/* 从 FLASH 读取代码 */
@@ -60,7 +74,7 @@ int main(void)
 								i*GD32_PAGE_SIZE+UpdataA.W25q64_blockNB*SPI_FLASH_BlockSize,\
 								GD32_PAGE_SIZE);
 					/* 将代码更新到 GD32 */
-					gd32_write_flash(GD32_FLASH_SADDR + i*GD32_PAGE_SIZE,\
+					gd32_write_flash(GD32_A_SADDR + i*GD32_PAGE_SIZE,\
 									(uint32_t *)UpdataA.Updata_buff,\
 									GD32_PAGE_SIZE);
 					

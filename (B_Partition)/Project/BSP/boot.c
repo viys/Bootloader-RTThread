@@ -44,26 +44,96 @@ static void bootloader_info(void)
 	u0_printf("[7]Reboot\r\n");
 }
 
+/* 16位CRC校验 */
+static uint16_t xmodem_CRC16(uint8_t *data,uint16_t datalen)
+{
+	uint16_t Crcinit = 0x0000;
+	uint16_t Crcipoly = 0x1021;
+	
+	while(datalen --){
+		Crcinit = (*data << 8) ^ Crcinit;
+		for(uint8_t i=0; i<8; i++){
+			if(Crcinit&0x8000){
+				Crcinit = (Crcinit << 1) ^ Crcipoly;
+			}else{
+				Crcinit = (Crcinit << 1);			
+			}
+			data ++;
+		}
+	return Crcinit;
+	}
+	return 0;
+}
+
 /* Bootloader命令行事件处理 */
 void bootloader_event(uint8_t *data,uint16_t datalen)
 {
-	if((datalen==1)&&(data[0]=='1')){
-		/* 擦除A区代码 */
-		
-		u0_printf("Erase A partition\r\n");
-		/* 擦除A区 */
-		gd32_erase_flash(GD32_A_SPAGE,GD32_A_PAGE_NUM);
-		u0_printf("Finsh erase\r\n");
-	}else if((datalen==1)&&(data[0]=='7')){
-		/* 软件重启 */
-		
-		u0_printf("Rebooting ...\r\n");
-		delay_1ms(100);
-		/* 重启 */
-		NVIC_SystemReset();
+	if(BootSta_Flag == 0){
+	
+		if((datalen==1)&&(data[0]=='1')){
+			/* 擦除A区代码 */
+			
+			u0_printf("Erase A partition\r\n");
+			/* 擦除A区 */
+			gd32_erase_flash(GD32_A_SPAGE,GD32_A_PAGE_NUM);
+			
+			u0_printf("Finsh erase\r\n");
+			
+		}else if((datalen==1)&&(data[0]=='2')){
+			/* 串口IAP下载A区代码 */
+			
+			/* 通过Xmodem协议,串口IAP下载程序到A区,请使用二进制文件 */
+			u0_printf("Via Xmodem:IAP download program to A,please upload bin\r\n");
+			/* 擦除A区 */
+			gd32_erase_flash(GD32_A_SPAGE,GD32_A_PAGE_NUM);
+			/* 相应的Flag置位 */
+			FlagSET(BootSta_Flag,IAP_XMODEC_FLAG|IAP_XMODED_FLAG);
+			/* Xmodem时间计数器清零 */
+			UpdataA.Xmodem_Timer = 0;
+			/* Xmodem传输计数值清零 */
+			UpdataA.xmodem_NB = 0;
+			
+		}else if((datalen==1)&&(data[0]=='7')){
+			/* 软件重启 */
+			
+			u0_printf("Rebooting ...\r\n");
+			delay_1ms(100);
+			/* 重启 */
+			NVIC_SystemReset();
+		}
 	}
-
+	
+	/* 进行Xmodem IAP下载 */
+	if(FlagGET(BootSta_Flag,IAP_XMODED_FLAG)){
+		if((datalen==133)&&(data[0]==0x01)){
+			FlagCLR(BootSta_Flag,IAP_XMODEC_FLAG);
+			UpdataA.Xmodem_CRC = xmodem_CRC16(&data[3],128);
+			
+			
+			if(UpdataA.Xmodem_CRC == data[131]*256+data[132]){
+				/* CRC校验通过 */
+				
+				/* 接收次数 */
+				UpdataA.xmodem_NB ++;
+				/* 将Xmode数据加载到UpdataA.Updata_buff */
+				memcpy(&UpdataA.Updata_buff[((UpdataA.xmodem_NB-1)%(GD32_PAGE_SIZE/128))*128],&data[3],128);
+				
+				if(UpdataA.xmodem_NB%(GD32_PAGE_SIZE/128) == 0){
+					
+				}
+				
+				/* 以16进制发送0x15 */
+				u0_printf("\x06");
+			}else{
+				/* CRC校验不通过 */
+				
+				/* 以16进制发送0x15 */
+				u0_printf("\x15");
+			}
+		}
+	}
 }
+
 
 void bootloader_brance(void)
 {
@@ -86,7 +156,6 @@ void bootloader_brance(void)
 	u0_printf("Enter BootLoader command\r\n");
 	/* 打印命令信息 */
 	bootloader_info();
-
 }
 
 __asm void MSR_SP(uint32_t addr)
