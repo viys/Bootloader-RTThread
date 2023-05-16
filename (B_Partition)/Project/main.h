@@ -2,6 +2,7 @@
 #define __MAIN_H
 
 #include "stdint.h"
+#include "fmc.h"
 
 /*
  * GD32 RAM	ROM  bank0_size bank1_size
@@ -35,11 +36,19 @@
 
 typedef struct{
 	uint32_t OTA_flag;
+	/* 0号成员固定为OTA的大小 */
+	uint32_t Firelen[11];
 }OTA_InfoCB;
 #define OTA_InfoCB_SIZE	sizeof(OTA_InfoCB)
 
+typedef struct{
+	uint8_t Updata_buff[GD32_PAGE_SIZE];
+	uint32_t w25q64;
+}UpDataA_CB;
+#define UPDATAA_CB_SIZE	sizeof(UpDataA_CB)
 
 extern OTA_InfoCB OTA_Info;
+extern UpDataA_CB UpdataA;
 
 #endif /* __MAIN_H */
 

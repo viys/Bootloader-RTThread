@@ -8,6 +8,7 @@
 #include "at24cxx.h"
 
 OTA_InfoCB OTA_Info;
+UpDataA_CB UpdataA;
 
 int main(void)
 {
@@ -18,8 +19,8 @@ int main(void)
 	i2c_eeprom_init();
 
 	w25q64_init();
-	
-	at24cxx_read_OTA_info();
+
+	at24cxx_read_OTA_info();	
 	
 	bootloader_brance();
 	
