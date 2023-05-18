@@ -18,7 +18,7 @@
 #endif /* define GD32F10x */
 
 /* gd32 flash 擦除函数 */
-void gd32_erase_flash(uint16_t start,uint16_t num);
+void gd32_erase_flash(uint32_t start,uint16_t num);
 /* gd32 flash 写函数 */
 void gd32_write_flash(uint32_t saddr,uint32_t *wdata,uint32_t wnum);
 /* fmc 测试函数 */

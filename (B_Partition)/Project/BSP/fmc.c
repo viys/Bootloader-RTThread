@@ -1,7 +1,7 @@
 #include "fmc.h"
 #include "uart.h"
 
-void gd32_erase_flash(uint16_t start,uint16_t num)
+void gd32_erase_flash(uint32_t start,uint16_t num)
 {
 	
 	/* 解锁flash */

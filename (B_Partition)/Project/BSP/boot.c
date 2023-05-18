@@ -119,16 +119,26 @@ void bootloader_event(uint8_t *data,uint16_t datalen)
 				memcpy(&UpdataA.Updata_buff[((UpdataA.xmodem_NB-1)%(GD32_PAGE_SIZE/128))*128],&data[3],128);
 				
 				if(UpdataA.xmodem_NB%(GD32_PAGE_SIZE/128) == 0){
-					
+					gd32_write_flash(GD32_A_SADDR + ((UpdataA.xmodem_NB/(GD32_PAGE_SIZE/128))-1)*GD32_PAGE_SIZE,\
+									(uint32_t *)UpdataA.Updata_buff,\
+									GD32_PAGE_SIZE);
 				}
 				
-				/* 以16进制发送0x15 */
+				/* 以16进制发送0x06 */
 				u0_printf("\x06");
 			}else{
 				/* CRC校验不通过 */
 				
 				/* 以16进制发送0x15 */
 				u0_printf("\x15");
+			}
+		}
+		if((datalen==1)&&(data[0]==0x04)){
+			u0_printf("\x06");
+			if(UpdataA.xmodem_NB%(GD32_PAGE_SIZE/128) != 0){
+					gd32_write_flash(GD32_A_SADDR + ((UpdataA.xmodem_NB/(GD32_PAGE_SIZE/128)))*GD32_PAGE_SIZE,\
+									(uint32_t *)UpdataA.Updata_buff,\
+									(UpdataA.xmodem_NB%(GD32_PAGE_SIZE/128))*128);
 			}
 		}
 	}
