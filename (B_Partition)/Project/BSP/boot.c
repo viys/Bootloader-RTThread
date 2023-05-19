@@ -45,24 +45,41 @@ static void bootloader_info(void)
 }
 
 /* 16位CRC校验 */
-static uint16_t xmodem_CRC16(uint8_t *data,uint16_t datalen)
+uint16_t xmodem_CRC16(uint8_t *data,uint16_t datalen)
 {
+	/* Xmdoem CRC校验的初始值，必须是0x0000 */
 	uint16_t Crcinit = 0x0000;
+	/* Xmdoem CRC校验的多项式，必须是0x1021 */
 	uint16_t Crcipoly = 0x1021;
 	
-	while(datalen --){
+	/* 根据datalen大小，有多少字节循环多少次 */
+	while(datalen--){
+		
+		/* 先将带校验的字节，挪到高8位 */
 		Crcinit = (*data << 8) ^ Crcinit;
-		for(uint8_t i=0; i<8; i++){
+		
+		/* 每个字节8个二进制位，循环8次 */
+		for(uint8_t i=0;i<8;i++){
+			
 			if(Crcinit&0x8000){
+				/* 判断BIT15是1还是0,是1的话，进入if */
+				
+				/* 是1的话，先左移，再异或多项式 */
 				Crcinit = (Crcinit << 1) ^ Crcipoly;
-			}else{
-				Crcinit = (Crcinit << 1);			
 			}
-			data ++;
+			else{
+				/* 判断BIT15是1还是0,是0的话，进入else */
+				
+				/* 是0的话，只左移 */
+				Crcinit = (Crcinit << 1);
+			}
 		}
-	return Crcinit;
+		
+		/* 下移，计算一个字节数据 */
+		data++;
 	}
-	return 0;
+	/* 返回校验后的数据 */
+	return Crcinit;
 }
 
 /* Bootloader命令行事件处理 */

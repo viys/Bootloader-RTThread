@@ -23,6 +23,7 @@ void at24cxx_read_OTA_info(void);
 void at24cxx_write_OTA_info(void);
 /* 查看将读取的 OTA_flag 值 */
 void print_OTA_update_value(uint8_t sw);
-
+/* 16位CRC校验函数 */
+uint16_t xmodem_CRC16(uint8_t *data,uint16_t datalen);
 
 #endif /*__BOOT_H */
