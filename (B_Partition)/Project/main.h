@@ -28,6 +28,7 @@
 #define UPDATA_A_FLAG		0x00000001	//A区需要更新状态位
 #define IAP_XMODEC_FLAG		0x00000002	//串口IAP开始传输状态位
 #define IAP_XMODED_FLAG		0x00000004	//串口IAP数据处理状态位
+#define SET_VERSION_FLAG	0x00000008	//设置版本号状态位
 
 /* uint16_t 大小端互换 */
 #define BigLittleSwap16(A)  ((((uint16_t)(A) & 0xff00) >> 8) | \
@@ -44,9 +45,12 @@
 #define FlagGET(Flag,bit)	(Flag & bit)	//Flag获取
 
 typedef struct{
+	/* 更新标志位,等于 UPDATA_A_FLAG 时切换OTA更新A区分支 */
 	uint32_t OTA_flag;
-	/* 0号成员固定为OTA的大小 */
+	/* 不同块中固件的长度,0号成员固定为OTA的大小 */
 	uint32_t Firelen[11];
+	/* 固件版本号 */
+	uint8_t OTA_ver[32];
 }OTA_InfoCB;
 #define OTA_InfoCB_SIZE	sizeof(OTA_InfoCB)
 

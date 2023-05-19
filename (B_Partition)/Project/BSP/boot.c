@@ -111,6 +111,19 @@ void bootloader_event(uint8_t *data,uint16_t datalen)
 			/* Xmodem传输计数值清零 */
 			UpdataA.xmodem_NB = 0;
 			
+		}else if((datalen==1)&&(data[0]=='3')){
+			/* 设置版本号 */
+			u0_printf("Set OTA_var\r\n");
+			FlagSET(BootSta_Flag,SET_VERSION_FLAG);
+		
+		}else if((datalen==1)&&(data[0]=='4')){
+			/* 查询版本号 */
+			u0_printf("Query OTA_var\r\n");
+			/* 读取eeprom中的版本号 */
+			at24cxx_read_OTA_info();
+			/* 打印版本号 */
+			u0_printf("OTA_ver:%s\r\n",OTA_Info.OTA_ver);
+			bootloader_info();
 		}else if((datalen==1)&&(data[0]=='7')){
 			/* 软件重启 */
 			
@@ -119,10 +132,38 @@ void bootloader_event(uint8_t *data,uint16_t datalen)
 			/* 重启 */
 			NVIC_SystemReset();
 		}
-	}
+		
+	}else if(FlagGET(BootSta_Flag,SET_VERSION_FLAG)){
+	/* 进行版本号设置 */
+		
+		if(datalen==26){
+			/* 版本号长度正确,版本号为26个字节 */
+			
+			/* 格式化输入,temp避免编译报错 */
+			int t;
+			if(sscanf((char *)data,"VER-%d.%d.%d-%d/%d/%d-%d:%d",&t,&t,&t,&t,&t,&t,&t,&t)==8){
+				
+			}else{
+				/* 版本号格式错误 */
+				u0_printf("OTA_ver format is wrong\r\n");
+			}
+		}else{
+			/* 版本号长度错误 */
+			u0_printf("OTA_ver length is wrong\r\n");
+			/* 将版本号保存至 OTA_Info中 */
+			memset(OTA_Info.OTA_ver,0,32);
+			memcpy(OTA_Info.OTA_ver,data,26);
+			/* 将版本号保存在eeprom中 */
+			at24cxx_write_OTA_info();
+			/* 打印提示信息,版本号正确 */
+			u0_printf("OTA_var is correct\r\n");
+			FlagCLR(BootSta_Flag,SET_VERSION_FLAG);//待测试
+			bootloader_info();
+		}
 	
-	/* 进行Xmodem IAP下载 */
-	if(FlagGET(BootSta_Flag,IAP_XMODED_FLAG)){
+	}else if(FlagGET(BootSta_Flag,IAP_XMODED_FLAG)){
+		/* 进行Xmodem IAP下载 */
+	
 		if((datalen==133)&&(data[0]==0x01)){
 			FlagCLR(BootSta_Flag,IAP_XMODEC_FLAG);
 			UpdataA.Xmodem_CRC = xmodem_CRC16(&data[3],128);
