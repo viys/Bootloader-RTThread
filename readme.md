@@ -67,6 +67,10 @@ OF SUCH DAMAGE.
    ```
 
 
-## 升级传输文件格式
+### 升级传输文件格式
 
 `.bin`：keil文件转换命令`fromelf.exe --bin -o .\rtt_gd103.bin .\rtt_gd103.axf`
+
+### 版本号格式
+
+`VER-1.0.0-2023/5/30-%00:%08`(26个字符)
