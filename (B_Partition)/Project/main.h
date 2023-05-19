@@ -15,7 +15,7 @@
 #define GD32_ROM_SIZE		512*1024
 
 #define GD32_FLASH_SADDR	0x08000000										//FLASH起始地址
-#define GD32_PAGE_SIZE		Flash_Page_Size_Bank0							//扇区大小
+#define GD32_PAGE_SIZE		2048//Flash_Page_Size_Bank0							//扇区大小
 #define GD32_PAGE_NUM		GD32_ROM_SIZE/GD32_PAGE_SIZE					//总扇区个数
 #define	GD32_B_PAGE_NUM		10												//B区扇区个数
 #define GD32_A_PAGE_NUM		GD32_PAGE_NUM - GD32_B_PAGE_NUM					//A区扇区个数

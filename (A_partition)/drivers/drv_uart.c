@@ -33,7 +33,7 @@ void dbgusart_config(void)
     
     /* USART configure */
     usart_deinit(USART0);
-    usart_baudrate_set(USART0, 921600U);
+    usart_baudrate_set(USART0, 380400U);
     usart_word_length_set(USART0, USART_WL_8BIT);
     usart_stop_bit_set(USART0, USART_STB_1BIT);
     usart_parity_config(USART0, USART_PM_NONE);

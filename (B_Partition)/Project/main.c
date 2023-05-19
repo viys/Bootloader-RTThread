@@ -15,12 +15,13 @@ int main(void)
 {
 	systick_config();
 	
-	uart0_init(921600);
+	uart0_init(380400);
 	
 	i2c_eeprom_init();
 
 	w25q64_init();
-
+	
+	
 	at24cxx_read_OTA_info();	
 	
 	bootloader_brance();

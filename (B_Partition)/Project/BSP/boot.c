@@ -96,6 +96,7 @@ void bootloader_event(uint8_t *data,uint16_t datalen)
 			
 			u0_printf("Finsh erase\r\n");
 			
+			bootloader_info();
 		}else if((datalen==1)&&(data[0]=='2')){
 			/* 串口IAP下载A区代码 */
 			
@@ -126,7 +127,7 @@ void bootloader_event(uint8_t *data,uint16_t datalen)
 			FlagCLR(BootSta_Flag,IAP_XMODEC_FLAG);
 			UpdataA.Xmodem_CRC = xmodem_CRC16(&data[3],128);
 			
-			
+			/* 将本地运算的CRC和发送过来的CRC进行校验 */
 			if(UpdataA.Xmodem_CRC == data[131]*256+data[132]){
 				/* CRC校验通过 */
 				
@@ -141,12 +142,12 @@ void bootloader_event(uint8_t *data,uint16_t datalen)
 									GD32_PAGE_SIZE);
 				}
 				
-				/* 以16进制发送0x06 */
+				/* 以16进制发送0x06(ACK) */
 				u0_printf("\x06");
 			}else{
 				/* CRC校验不通过 */
 				
-				/* 以16进制发送0x15 */
+				/* 以16进制发送0x15(NCK) */
 				u0_printf("\x15");
 			}
 		}
@@ -157,6 +158,10 @@ void bootloader_event(uint8_t *data,uint16_t datalen)
 									(uint32_t *)UpdataA.Updata_buff,\
 									(UpdataA.xmodem_NB%(GD32_PAGE_SIZE/128))*128);
 			}
+			
+			FlagCLR(BootSta_Flag,IAP_XMODED_FLAG);
+			delay_1ms(100);
+			NVIC_SystemReset();
 		}
 	}
 }
