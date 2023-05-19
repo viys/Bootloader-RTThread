@@ -15,20 +15,20 @@ int main(void)
 {
 	systick_config();
 	
-	uart0_init(380400);
+	uart0_init(460800);
 	
-	i2c_eeprom_init();
+	/* 用到较为复杂的更新功能时打开注释 */
+//	i2c_eeprom_init();
 
-	w25q64_init();
+//	w25q64_init();
 	
 	
-	at24cxx_read_OTA_info();	
+//	at24cxx_read_OTA_info();	
 	
 	bootloader_brance();
 	
 	while(1)
 	{
-		delay_1ms(10);
 		/* Bootloader命令行程序 */
 		if(U0CB.URxDataOUT != U0CB.URxDataIN){
 			/* 命令处理 */
@@ -44,13 +44,13 @@ int main(void)
 		/* 串口IAP下载代码 */
 		if(FlagGET(BootSta_Flag,IAP_XMODEC_FLAG)){
 			/* 达到Xmodem约定时间 */
-			if(UpdataA.Xmodem_Timer >= 100){
+			if(UpdataA.Xmodem_Timer >= 1000){
 				/* 发送下载起始位 */
 				u0_printf("C");
 				/* 计数值清零 */
 				UpdataA.Xmodem_Timer = 0;
 			}
-			UpdataA.Xmodem_Timer ++;
+			
 		}
 		
 		/* 将外部FLAH中代码写入A区 */

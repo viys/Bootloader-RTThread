@@ -39,6 +39,7 @@ OF SUCH DAMAGE.
 #include "gd32f10x_it.h"
 #include "systick.h"
 #include "uart.h"
+#include "main.h"
 
 /*!
     \brief      this function handles NMI exception
@@ -141,6 +142,7 @@ void PendSV_Handler(void)
 void SysTick_Handler(void)
 {
     delay_decrement();
+	UpdataA.Xmodem_Timer ++;
 }
 
 void USART0_IRQHandler(void)

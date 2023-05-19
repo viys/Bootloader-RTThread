@@ -60,8 +60,10 @@ int main(){
     while (1)
     {
 		
-//		rt_kprintf("%s\r\n",B40_CRTL(B40_BAND,115200));
-		
+//		rt_kprintf("%s\r\n",B40_CRTL(B40_BAND,460800));
+//		
+//		rt_thread_mdelay(1000);
+//		rt_kprintf("%s\r\n",B40_CRTL(B40_NAME,bootloader));
 		rt_thread_mdelay(1000);
 
     }
