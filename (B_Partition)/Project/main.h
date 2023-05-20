@@ -29,6 +29,8 @@
 #define IAP_XMODEC_FLAG		0x00000002	//串口IAP开始传输状态位
 #define IAP_XMODED_FLAG		0x00000004	//串口IAP数据处理状态位
 #define SET_VERSION_FLAG	0x00000008	//设置版本号状态位
+#define WRITE_E_FLASH_FLAG	0x00000010	//向外部FLASH写程序
+#define FLASH_XMODEM_FALG	0x00000020	//向外部FLASH传输文件
 
 /* uint16_t 大小端互换 */
 #define BigLittleSwap16(A)  ((((uint16_t)(A) & 0xff00) >> 8) | \

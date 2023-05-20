@@ -123,7 +123,16 @@ void bootloader_event(uint8_t *data,uint16_t datalen)
 			at24cxx_read_OTA_info();
 			/* 打印版本号 */
 			u0_printf("OTA_ver:%s\r\n",OTA_Info.OTA_ver);
+			
 			bootloader_info();
+		}else if((datalen==1)&&(data[0]=='5')){
+			/* 向外部FLSH写入程序 */
+			u0_printf("Download program to e-flash\r\n");
+			
+			/* 相应的Flag置位 */
+			FlagSET(BootSta_Flag,WRITE_E_FLASH_FLAG);
+			
+			
 		}else if((datalen==1)&&(data[0]=='7')){
 			/* 软件重启 */
 			
@@ -133,34 +142,6 @@ void bootloader_event(uint8_t *data,uint16_t datalen)
 			NVIC_SystemReset();
 		}
 		
-	}else if(FlagGET(BootSta_Flag,SET_VERSION_FLAG)){
-	/* 进行版本号设置 */
-		
-		if(datalen==26){
-			/* 版本号长度正确,版本号为26个字节 */
-			
-			/* 格式化输入,temp避免编译报错 */
-			int t;
-			if(sscanf((char *)data,"VER-%d.%d.%d-%d/%d/%d-%d:%d",&t,&t,&t,&t,&t,&t,&t,&t)==8){
-				
-			}else{
-				/* 版本号格式错误 */
-				u0_printf("OTA_ver format is wrong\r\n");
-			}
-		}else{
-			/* 版本号长度错误 */
-			u0_printf("OTA_ver length is wrong\r\n");
-			/* 将版本号保存至 OTA_Info中 */
-			memset(OTA_Info.OTA_ver,0,32);
-			memcpy(OTA_Info.OTA_ver,data,26);
-			/* 将版本号保存在eeprom中 */
-			at24cxx_write_OTA_info();
-			/* 打印提示信息,版本号正确 */
-			u0_printf("OTA_var is correct\r\n");
-			FlagCLR(BootSta_Flag,SET_VERSION_FLAG);//待测试
-			bootloader_info();
-		}
-	
 	}else if(FlagGET(BootSta_Flag,IAP_XMODED_FLAG)){
 		/* 进行Xmodem IAP下载 */
 	
@@ -178,7 +159,17 @@ void bootloader_event(uint8_t *data,uint16_t datalen)
 				memcpy(&UpdataA.Updata_buff[((UpdataA.xmodem_NB-1)%(GD32_PAGE_SIZE/128))*128],&data[3],128);
 				
 				if(UpdataA.xmodem_NB%(GD32_PAGE_SIZE/128) == 0){
-					gd32_write_flash(GD32_A_SADDR + ((UpdataA.xmodem_NB/(GD32_PAGE_SIZE/128))-1)*GD32_PAGE_SIZE,\
+					
+					
+					if(FlagGET(BootSta_Flag,FLASH_XMODEM_FALG)){
+						/* 向外部FLASH传输程序 */
+						
+						for(uint8_t i=0; i<8; i++){//2k flash 一次写入258字节
+*********					w25q64_page_write(&UpdataA.Updata_buff[i*256],UpdataA.W25q64_blockNB*64*2048/256);
+						}
+					}else{
+						/* 向A区写入传输程序 */
+						gd32_write_flash(GD32_A_SADDR + ((UpdataA.xmodem_NB/(GD32_PAGE_SIZE/128))-1)*GD32_PAGE_SIZE,\
 									(uint32_t *)UpdataA.Updata_buff,\
 									GD32_PAGE_SIZE);
 				}
@@ -204,6 +195,77 @@ void bootloader_event(uint8_t *data,uint16_t datalen)
 			delay_1ms(100);
 			NVIC_SystemReset();
 		}
+	}else if(FlagGET(BootSta_Flag,SET_VERSION_FLAG)){
+	/* 进行版本号设置 */
+		
+		if(datalen==26){
+			/* 版本号长度正确,版本号为26个字节 */
+			
+			/* 格式化输入,temp避免编译报错 */
+			int t;
+			if(sscanf((char *)data,"VER-%d.%d.%d-%d/%d/%d-%d:%d",&t,&t,&t,&t,&t,&t,&t,&t)==8){
+				/* 将版本号保存至 OTA_Info中 */
+				memset(OTA_Info.OTA_ver,0,32);
+				memcpy(OTA_Info.OTA_ver,data,26);
+				/* 将版本号保存在eeprom中 */
+				at24cxx_write_OTA_info();
+				/* 打印提示信息,版本号正确 */
+				u0_printf("OTA_var is correct\r\n");
+				FlagCLR(BootSta_Flag,SET_VERSION_FLAG);//待测试
+				bootloader_info();
+			}else{
+				/* 版本号格式错误 */
+				u0_printf("OTA_ver format is wrong\r\n");
+			}
+		}else{
+			/* 版本号长度错误 */
+			u0_printf("OTA_ver length is wrong\r\n");
+		}
+	
+	}else if(FlagGET(BootSta_Flag,WRITE_E_FLASH_FLAG)){
+	/* 向外部FLASH写入程序 */
+		
+		/* 选择写入的Firelen区 */
+		u0_printf("Please select Firelen(1~9)\r\n");
+		
+		/* 检测到输入一个字节 */
+		if(datalen==1){
+			
+			/* 判断是否输入了1-9 */
+			if(data[0]>='1'&&data[0]<='9'){
+				
+				UpdataA.W25q64_blockNB = data[0] - '0';
+				
+				/* 相关标志位置位 */
+				FlagSET(BootSta_Flag,IAP_XMODEC_FLAG|IAP_XMODED_FLAG|FLASH_XMODEM_FALG);
+				
+				UpdataA.Xmodem_Timer = 0;
+				UpdataA.xmodem_NB = 0;
+				OTA_Info.Firelen[UpdataA.W25q64_blockNB] = 0;
+				
+				/* 目前只能升级64k的程序 */
+				w25q64_erase64k(UpdataA.W25q64_blockNB);
+				
+				/* 通过Xmodem协议,串口IAP下载程序到外部FLASH Firelen[几],请使用二进制文件 */
+				u0_printf("Via Xmodem:IAP download program to e-flash Firelen[%d],please upload bin\r\n",UpdataA.W25q64_blockNB);
+				
+				/* 清除相关标志位 */
+				FlagCLR(BootSta_Flag,WRITE_E_FLASH_FLAG);
+				
+				
+			}else{
+				
+				/* Firelen选择编号错误 */
+				u0_printf("Firelen selection is wrong\r\n");
+			}
+			
+		}else{
+			
+			/* Firelen长度错误 */
+			u0_printf("Firelen length is wrong\r\n");
+		
+		}
+	
 	}
 }
 

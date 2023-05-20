@@ -18,12 +18,12 @@ int main(void)
 	uart0_init(460800);
 	
 	/* 用到较为复杂的更新功能时打开注释 */
-//	i2c_eeprom_init();
+	i2c_eeprom_init();
 
-//	w25q64_init();
+	w25q64_init();
 	
 	
-//	at24cxx_read_OTA_info();	
+	at24cxx_read_OTA_info();	
 	
 	bootloader_brance();
 	
