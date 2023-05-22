@@ -129,9 +129,20 @@ void bootloader_event(uint8_t *data,uint16_t datalen)
 			/* 向外部FLSH写入程序 */
 			u0_printf("Download program to e-flash\r\n");
 			
-			/* 相应的Flag置位 */
+					
+			/* 选择写入的Firelen区 */
+			u0_printf("Please select Firelen(1~9)\r\n");
 			FlagSET(BootSta_Flag,WRITE_E_FLASH_FLAG);
 			
+		}else if((datalen==1)&&(data[0]=='6')){
+			/* 使用外部FALSH内的程序 */
+			
+			u0_printf("Download e-flash`s program to A\r\n");
+			/* 选择Firelen区的程序 */
+			u0_printf("Please select Firelen(1~9)\r\n");
+			
+			/* 相应的Flag置位 */
+			FlagSET(BootSta_Flag,WRITE_EP_TO_A_FLAH);
 			
 		}else if((datalen==1)&&(data[0]=='7')){
 			/* 软件重启 */
@@ -165,7 +176,8 @@ void bootloader_event(uint8_t *data,uint16_t datalen)
 						/* 向外部FLASH传输程序 */
 						
 						for(uint8_t i=0; i<8; i++){//2k flash 一次写入258字节
-*********					w25q64_page_write(&UpdataA.Updata_buff[i*256],UpdataA.W25q64_blockNB*64*2048/256);
+							w25q64_page_write(&UpdataA.Updata_buff[i*256],\
+											  (UpdataA.xmodem_NB/GD32_PAGE_SIZE/SPI_FLASH_PerWritePageSize-1)*8+i+UpdataA.W25q64_blockNB*SPI_FLASH_BlockSize/SPI_FLASH_PerWritePageSize);
 						}
 					}else{
 						/* 向A区写入传输程序 */
@@ -174,26 +186,51 @@ void bootloader_event(uint8_t *data,uint16_t datalen)
 									GD32_PAGE_SIZE);
 				}
 				
-				/* 以16进制发送0x06(ACK) */
+					/* 以16进制发送0x06(ACK) */
+					u0_printf("\x06");
+				}else{
+					/* CRC校验不通过 */
+					
+					/* 以16进制发送0x15(NCK) */
+					u0_printf("\x15");
+				}
+			}
+			if((datalen==1)&&(data[0]==0x04)){
 				u0_printf("\x06");
-			}else{
-				/* CRC校验不通过 */
 				
-				/* 以16进制发送0x15(NCK) */
-				u0_printf("\x15");
+				if(UpdataA.xmodem_NB%(GD32_PAGE_SIZE/128) != 0){
+					if(FlagGET(BootSta_Flag,FLASH_XMODEM_FALG)){
+						/* 向外部FLASH传输程序 */
+						
+						for(uint8_t i=0; i<8; i++){//2k flash 一次写入258字节
+							w25q64_page_write(&UpdataA.Updata_buff[i*256],\
+											  (UpdataA.xmodem_NB/GD32_PAGE_SIZE/SPI_FLASH_PerWritePageSize)*8+i+UpdataA.W25q64_blockNB*SPI_FLASH_BlockSize/SPI_FLASH_PerWritePageSize);
+						}
+						
+					}else{
+						/* 向A区写入传输程序 */
+						
+						gd32_write_flash(GD32_A_SADDR + ((UpdataA.xmodem_NB/(GD32_PAGE_SIZE/128)))*GD32_PAGE_SIZE,\
+										(uint32_t *)UpdataA.Updata_buff,\
+										(UpdataA.xmodem_NB%(GD32_PAGE_SIZE/128))*128);
+					}
+				}
+				
+				FlagCLR(BootSta_Flag,IAP_XMODED_FLAG);
+				
+				if(FlagGET(BootSta_Flag,FLASH_XMODEM_FALG)){
+					
+					FlagCLR(BootSta_Flag,FLASH_XMODEM_FALG);
+					OTA_Info.Firelen[UpdataA.W25q64_blockNB] = UpdataA.xmodem_NB * 128;
+					at24cxx_write_OTA_info();
+					delay_1ms(100);
+					bootloader_info();
+				}else{
+					
+					delay_1ms(100);
+					NVIC_SystemReset();
+				}
 			}
-		}
-		if((datalen==1)&&(data[0]==0x04)){
-			u0_printf("\x06");
-			if(UpdataA.xmodem_NB%(GD32_PAGE_SIZE/128) != 0){
-					gd32_write_flash(GD32_A_SADDR + ((UpdataA.xmodem_NB/(GD32_PAGE_SIZE/128)))*GD32_PAGE_SIZE,\
-									(uint32_t *)UpdataA.Updata_buff,\
-									(UpdataA.xmodem_NB%(GD32_PAGE_SIZE/128))*128);
-			}
-			
-			FlagCLR(BootSta_Flag,IAP_XMODED_FLAG);
-			delay_1ms(100);
-			NVIC_SystemReset();
 		}
 	}else if(FlagGET(BootSta_Flag,SET_VERSION_FLAG)){
 	/* 进行版本号设置 */
@@ -211,7 +248,7 @@ void bootloader_event(uint8_t *data,uint16_t datalen)
 				at24cxx_write_OTA_info();
 				/* 打印提示信息,版本号正确 */
 				u0_printf("OTA_var is correct\r\n");
-				FlagCLR(BootSta_Flag,SET_VERSION_FLAG);//待测试
+				FlagCLR(BootSta_Flag,SET_VERSION_FLAG);
 				bootloader_info();
 			}else{
 				/* 版本号格式错误 */
@@ -224,9 +261,6 @@ void bootloader_event(uint8_t *data,uint16_t datalen)
 	
 	}else if(FlagGET(BootSta_Flag,WRITE_E_FLASH_FLAG)){
 	/* 向外部FLASH写入程序 */
-		
-		/* 选择写入的Firelen区 */
-		u0_printf("Please select Firelen(1~9)\r\n");
 		
 		/* 检测到输入一个字节 */
 		if(datalen==1){
@@ -252,20 +286,41 @@ void bootloader_event(uint8_t *data,uint16_t datalen)
 				/* 清除相关标志位 */
 				FlagCLR(BootSta_Flag,WRITE_E_FLASH_FLAG);
 				
-				
 			}else{
 				
 				/* Firelen选择编号错误 */
 				u0_printf("Firelen selection is wrong\r\n");
-			}
-			
+				}
 		}else{
 			
 			/* Firelen长度错误 */
 			u0_printf("Firelen length is wrong\r\n");
 		
 		}
-	
+	}else if(FlagGET(BootSta_Flag,WRITE_EP_TO_A_FLAH)){
+	/* 从外部FLASH读取程序 */
+		
+		/* 检测到输入一个字节 */
+		if(datalen==1){
+			
+			/* 判断是否输入了1-9 */
+			if(data[0]>='1'&&data[0]<='9'){
+				
+				UpdataA.W25q64_blockNB = data[0] - '0';
+				
+				/* 相关标志位置位 */
+				FlagSET(BootSta_Flag,UPDATA_A_FLAG);
+				FlagCLR(BootSta_Flag,WRITE_EP_TO_A_FLAH);					
+				
+			}else{
+				/* Firelen选择编号错误 */
+				u0_printf("Firelen selection is wrong\r\n");
+			}
+			
+		}else{
+			/* Firelen长度错误 */
+			u0_printf("Firelen length is wrong\r\n");
+		}
 	}
 }
 

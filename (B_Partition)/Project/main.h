@@ -31,6 +31,7 @@
 #define SET_VERSION_FLAG	0x00000008	//设置版本号状态位
 #define WRITE_E_FLASH_FLAG	0x00000010	//向外部FLASH写程序
 #define FLASH_XMODEM_FALG	0x00000020	//向外部FLASH传输文件
+#define WRITE_EP_TO_A_FLAH	0x00000040	//将外部FLASH内的程序写入A区
 
 /* uint16_t 大小端互换 */
 #define BigLittleSwap16(A)  ((((uint16_t)(A) & 0xff00) >> 8) | \
