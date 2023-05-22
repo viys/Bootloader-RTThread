@@ -42,5 +42,5 @@ void w25q64_page_write(uint8_t *wbuff,uint16_t pageNB);
 void w25q64_read(uint8_t *rbuff,uint16_t addr,uint32_t datalen);
 /* 测试 w25q64 */
 void w25q64_test(void);
-
+void w25q64test(void);
 #endif /* __W25Q64_H */

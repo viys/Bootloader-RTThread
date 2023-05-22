@@ -86,28 +86,30 @@ void w25q64_read(uint8_t *rbuff,uint16_t addr,uint32_t datalen)
 void w25q64_test(void)
 {
 	uint8_t wdata[256];
-	uint8_t rdata[256];
+
 	
 	w25q64_erase64k(0);
 	
-	for(uint16_t i=0; i<256; i++){
-		for(uint16_t j=0; j<256; j++){
+	for(uint16_t i=0; i<4; i++){
+		for(uint16_t j=0; j<4; j++){
 			wdata[j] = i;
 		}
 		w25q64_page_write(wdata,i);
 	}
 	
 	delay_1ms(50);
-	
-	for(uint16_t i=0; i<256; i++){
-		w25q64_read(rdata,i*256.,256);
-		for(uint16_t j=0; j<256; j++){
-			u0_printf("地址%d=%x\r\n",i*256+j,rdata[j]);
+	w25q64test();
+}
+
+void w25q64test(void)
+{
+	uint8_t rdata[256];
+	for(uint16_t i=0; i<4; i++){
+		w25q64_read(rdata,i*4.,256);
+		for(uint16_t j=0; j<4; j++){
+			u2_printf("地址%d=%x\r\n",i*4+j,rdata[j]);
 		
 		}
 	}
-
 }
-
-
 

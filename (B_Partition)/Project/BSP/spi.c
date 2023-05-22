@@ -1,4 +1,5 @@
 #include "spi.h"
+#include "uart.h"
 
 void spi0_init(void)
 {

@@ -25,5 +25,7 @@ void at24cxx_write_OTA_info(void);
 void print_OTA_update_value(uint8_t sw);
 /* 16位CRC校验函数 */
 uint16_t xmodem_CRC16(uint8_t *data,uint16_t datalen);
+/* 将外部FLAH中代码写入A区 */
+void event_write_eflash_to_A(void);
 
 #endif /*__BOOT_H */
