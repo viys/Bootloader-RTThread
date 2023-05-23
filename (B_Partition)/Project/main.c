@@ -23,6 +23,9 @@ int main(void)
 	w25q64_init();
 
 	at24cxx_read_OTA_info();	
+// DBG
+	uart2_init(460800);
+//	dbg_efaslh();
 	
 	bootloader_brance();
 	

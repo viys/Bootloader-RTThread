@@ -9,6 +9,66 @@
 
 load_a LOAD_A;
 
+void dbg_efaslh(void)
+{
+	uint8_t wdata[256]={0,1,2,3,4,5,6,7,8,9,
+						0,1,2,3,4,5,6,7,8,9,
+						0,1,2,3,4,5,6,7,8,9,
+						0,1,2,3,4,5,6,7,8,9,
+						0,1,2,3,4,5,6,7,8,9,
+						0,1,2,3,4,5,6,7,8,9,
+						0,1,2,3,4,5,6,7,8,9,
+						0,1,2,3,4,5,6,7,8,9,
+						0,1,2,3,4,5,6,7,8,9,
+						0,1,2,3,4,5,6,7,8,9,
+						0,1,2,3,4,5,6,7,8,9,
+						0,1,2,3,4,5,6,7,8,9,
+						0,1,2,3,4,5,6,7,8,9,
+						0,1,2,3,4,5,6,7,8,9,
+						0,1,2,3,4,5,6,7,8,9,
+						0,1,2,3,4,5,6,7,8,9,
+						0,1,2,3,4,5,6,7,8,9,
+						0,1,2,3,4,5,6,7,8,9,
+						0,1,2,3,4,5,6,7,8,9,
+						0,1,2,3,4,5,6,7,8,9,
+						0,1,2,3,4,5,6,7,8,9,
+						0,1,2,3,4,5,6,7,8,9,
+						0,1,2,3,4,5,6,7,8,9,
+						0,1,2,3,4,5,6,7,8,9,
+						0,1,2,3,4,5,6,7,8,9
+						};
+
+//		w25q64_erase64k(1);
+						
+//	for(uint16_t i=0; i<256; i++){//2k flash 一次写入258字节
+//		w25q64_page_write(wdata,\
+//						  1*64*4 + i);
+//		u0_printf("writing\r\n");
+//	}
+	
+//DBG
+//	for(uint8_t i=0;i<32; i++){
+//		w25q64_read(UpdataA.Updata_buff,1*64*1024+i*1024,2048);
+//		for(uint16_t i=0; i<2048; i++){
+//			u2_printf("%x ",UpdataA.Updata_buff[i]);
+//		}
+//	}
+
+
+//		w25q64_page_write(wdata,\
+//						  1*64*4);
+//		u0_printf("writing\r\n");
+
+//	
+////DBG
+
+		w25q64_read(UpdataA.Updata_buff,2*64*1024-2048,2048);
+		for(uint16_t i=0; i<2048; i++){
+			u2_printf("%x ",UpdataA.Updata_buff[i]);
+		}
+
+}
+
 static uint8_t bootloader_enter(uint8_t timeout)
 {
 	u0_printf("Please enter 'w' within %ds to enter BootLoader command\r\n",timeout/10);
@@ -313,9 +373,10 @@ void event_IAP_download_eflash(uint8_t *data,uint16_t datalen)
 				
 				for(uint8_t i=0; i<8; i++){//2k flash 一次写入258字节
 					w25q64_page_write(&UpdataA.Updata_buff[i*256],\
-									  (UpdataA.xmodem_NB/GD32_PAGE_SIZE/SPI_FLASH_PerWritePageSize-1)*8+i+UpdataA.W25q64_blockNB*SPI_FLASH_BlockSize/SPI_FLASH_PerWritePageSize);
+									  (UpdataA.xmodem_NB/(GD32_PAGE_SIZE/SPI_FLASH_PerWritePageSize)-1)*8+i+UpdataA.W25q64_blockNB*SPI_FLASH_BlockSize/(GD32_PAGE_SIZE/SPI_FLASH_PerWritePageSize));
 					
-				}
+				}				
+				
 				/* 以16进制发送0x06(ACK) */
 				u0_printf("\x06");
 			}else{
@@ -331,9 +392,9 @@ void event_IAP_download_eflash(uint8_t *data,uint16_t datalen)
 		if(UpdataA.xmodem_NB%(GD32_PAGE_SIZE/128) != 0){
 			/* 向外部FLASH传输程序 */
 			
-			for(uint8_t i=0; i<8; i++){//2k flash 一次写入258字节
+		for(uint8_t i=0; i<8; i++){//2k flash 一次写入258字节
 				w25q64_page_write(&UpdataA.Updata_buff[i*256],\
-								  (UpdataA.xmodem_NB/GD32_PAGE_SIZE/SPI_FLASH_PerWritePageSize)*8+i+UpdataA.W25q64_blockNB*SPI_FLASH_BlockSize/SPI_FLASH_PerWritePageSize);
+							      (UpdataA.xmodem_NB/(GD32_PAGE_SIZE/SPI_FLASH_PerWritePageSize))*8+i+UpdataA.W25q64_blockNB*SPI_FLASH_BlockSize/(GD32_PAGE_SIZE/SPI_FLASH_PerWritePageSize));
 			}
 		}
 		

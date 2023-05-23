@@ -27,5 +27,6 @@ void print_OTA_update_value(uint8_t sw);
 uint16_t xmodem_CRC16(uint8_t *data,uint16_t datalen);
 /* 将外部FLAH中代码写入A区 */
 void event_write_eflash_to_A(void);
+void dbg_efaslh(void);
 
 #endif /*__BOOT_H */
