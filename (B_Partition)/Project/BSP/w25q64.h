@@ -39,7 +39,7 @@ void w25q64_erase64k(uint8_t blockNB);
 /* w25q64 page 写 */
 void w25q64_page_write(uint8_t *wbuff,uint16_t pageNB);
 /* w25q64 读数据 */
-void w25q64_read(uint8_t *rbuff,uint16_t addr,uint32_t datalen);
+void w25q64_read(uint8_t *rbuff,uint32_t addr,uint32_t datalen);
 /* 测试 w25q64 */
 void w25q64_test(void);
 void w25q64test(void);

@@ -67,7 +67,7 @@ void w25q64_page_write(uint8_t *wbuff,uint16_t pageNB)
 	CS_DISENABLE;
 }
 
-void w25q64_read(uint8_t *rbuff,uint16_t addr,uint32_t datalen)
+void w25q64_read(uint8_t *rbuff,uint32_t addr,uint32_t datalen)
 {
 	uint8_t wdata[4];
 	
