@@ -245,7 +245,6 @@ void event_IAP_download_A(uint8_t *data,uint16_t datalen)
 								(uint32_t *)UpdataA.Updata_buff,\
 								GD32_PAGE_SIZE);
 			}
-			
 			/* 以16进制发送0x06(ACK) */
 			u0_printf("\x06");
 		}else{
@@ -254,8 +253,7 @@ void event_IAP_download_A(uint8_t *data,uint16_t datalen)
 			/* 以16进制发送0x15(NCK) */
 			u0_printf("\x15");
 		}
-	}
-	if((datalen==1)&&(data[0]==0x04)){
+	}else if((datalen==1)&&(data[0]==0x04)){
 		u0_printf("\x06");
 		if(UpdataA.xmodem_NB%(GD32_PAGE_SIZE/128) != 0){
 				gd32_write_flash(GD32_A_SADDR + ((UpdataA.xmodem_NB/(GD32_PAGE_SIZE/128)))*GD32_PAGE_SIZE,\
@@ -349,62 +347,97 @@ void event_write_eflash(uint8_t *data,uint16_t datalen)
 
 }
 
-//# error
-/* IAP向外部下载FLASH代码 */
+
 void event_IAP_download_eflash(uint8_t *data,uint16_t datalen)
 {
-	/* 进行Xmodem IAP下载 */
-
 	if((datalen==133)&&(data[0]==0x01)){
 		FlagCLR(BootSta_Flag,IAP_XMODEC_FLAG);
-		UpdataA.Xmodem_CRC = xmodem_CRC16(&data[3],128);
 		
 		/* 将本地运算的CRC和发送过来的CRC进行校验 */
-		if(UpdataA.Xmodem_CRC == data[131]*256+data[132]){
-			/* CRC校验通过 */
+		UpdataA.Xmodem_CRC = xmodem_CRC16(&data[3],128);
+		
+		/* 校验成功 */
+		if(UpdataA.Xmodem_CRC == data[131]*256 + data[132]){
 			
 			/* 接收次数 */
-			UpdataA.xmodem_NB ++;
+			UpdataA.xmodem_NB++;
 			/* 将Xmode数据加载到UpdataA.Updata_buff */
 			memcpy(&UpdataA.Updata_buff[((UpdataA.xmodem_NB-1)%(GD32_PAGE_SIZE/128))*128],&data[3],128);
 			
-			if(UpdataA.xmodem_NB%(GD32_PAGE_SIZE/128) == 0){
-				/* 向外部FLASH传输程序 */
-				
+			/* 攒够2k */
+			if((UpdataA.xmodem_NB%(GD32_PAGE_SIZE/128))==0){
+					
+				/* 每次写入256字节,1扇区2048字,需要循环8次写 */
 				for(uint8_t i=0; i<8; i++){//2k flash 一次写入258字节
 					w25q64_page_write(&UpdataA.Updata_buff[i*256],\
 									  (UpdataA.xmodem_NB/(GD32_PAGE_SIZE/SPI_FLASH_PerWritePageSize)-1)*8+i+UpdataA.W25q64_blockNB*SPI_FLASH_BlockSize/(GD32_PAGE_SIZE/SPI_FLASH_PerWritePageSize));
-					
-				}				
-				
-				/* 以16进制发送0x06(ACK) */
-				u0_printf("\x06");
-			}else{
-				/* CRC校验不通过 */
-				
-				/* 以16进制发送0x15(NCK) */
-				u0_printf("\x15");
+				}
 			}
+			u0_printf("\x06");
+		}else{
+			u0_printf("\x15");
 		}
 	}else if((datalen==1)&&(data[0]==0x04)){
+		/* 数据接受完成 */
+		
 		u0_printf("\x06");
 		
-		if(UpdataA.xmodem_NB%(GD32_PAGE_SIZE/128) != 0){
-			/* 向外部FLASH传输程序 */
+		if((UpdataA.xmodem_NB%(GD32_PAGE_SIZE/128))!=0){
 			
-		for(uint8_t i=0; i<8; i++){//2k flash 一次写入258字节
+			for(uint8_t i=0; i<8; i++){//2k flash 一次写入258字节
 				w25q64_page_write(&UpdataA.Updata_buff[i*256],\
-							      (UpdataA.xmodem_NB/(GD32_PAGE_SIZE/SPI_FLASH_PerWritePageSize))*8+i+UpdataA.W25q64_blockNB*SPI_FLASH_BlockSize/(GD32_PAGE_SIZE/SPI_FLASH_PerWritePageSize));
+								  (UpdataA.xmodem_NB/(GD32_PAGE_SIZE/SPI_FLASH_PerWritePageSize))*8+i+UpdataA.W25q64_blockNB*SPI_FLASH_BlockSize/(GD32_PAGE_SIZE/SPI_FLASH_PerWritePageSize));
 			}
 		}
-		
+
 		FlagCLR(BootSta_Flag,FLASH_XMODEM_FALG);
-		OTA_Info.Firelen[UpdataA.W25q64_blockNB] = UpdataA.xmodem_NB * 128;
+		/* 计算并保存本次传输的程序大小 */
+		OTA_Info.Firelen[UpdataA.W25q64_blockNB] = UpdataA.xmodem_NB * 128;   
+		/* 在eeprom中保存信息 */
 		at24cxx_write_OTA_info();
 		delay_1ms(100);
 		bootloader_info();
 	}
-	
+}
+
+void event_IAP_download_eflash2(uint8_t *data,uint16_t datalen)
+{
+	uint16_t i=0;
+	//如果 IAP_XMODEMD_FLAG 置位表示开始Xmodem协议接收数据
+	if((datalen==133)&&(data[0]==0x01)){                                               //判断 Xmodem协议一包总长133字节 且 第一个字节帧头是0x01
+		FlagCLR(BootSta_Flag,IAP_XMODEC_FLAG);                                              //已经收到数据包了，所以清除 IAP_XMODEMC_FLAG，不再发送大写C
+		UpdataA.Xmodem_CRC = xmodem_CRC16(&data[3],128);                                //计算本次接收的数据包数据的CRC
+		if(UpdataA.Xmodem_CRC == data[131]*256 + data[132]){                            //计算的CRC 和 接收的CRC 比较，一样说明正确，进入if
+			UpdataA.xmodem_NB++;                                                        //已接收的数据包数量+1
+			memcpy(&UpdataA.Updata_buff[((UpdataA.xmodem_NB-1)%(GD32_PAGE_SIZE/128))*128],&data[3],128);   //将本次接收的数据，暂存到UpdataA.Updatabuff缓冲区
+			if((UpdataA.xmodem_NB%(GD32_PAGE_SIZE/128))==0){                            //对C8T6而言，如果已接收数据包数量是8的整数倍，说明都满1扇区1024字节，进入if
+				
+				for(i=0;i<8;i++){                                                  //W25Q64每次写入256字节，对C8T6而言，1扇区1024字节，需要循环4次写
+					w25q64_page_write(&UpdataA.Updata_buff[i*256], (UpdataA.xmodem_NB/16 - 1) * 8 + i + UpdataA.W25q64_blockNB * 64 *4);    //将接受的数据写入W25Q64
+				}					
+
+			}
+			u0_printf("\x06");    //正确，返回ACK给CRT软件
+		}else{                    //如果CRC校验错误，进入else
+			u0_printf("\x15");    //返回NCK给CRT软件
+		}
+	}
+	if((datalen==1)&&(data[0]==0x04)){                              //如果收到1个字节数据 且 是0x04，进入if，说明收到EOT，表明数据已经发生完毕
+		u0_printf("\x06");                                          //返回ACK给CRT软件
+		if((UpdataA.xmodem_NB%(GD32_PAGE_SIZE/128))!=0){             //对C8T6而言，判断是否还有不满1扇区1024字节的数据，如果有进入if，把剩余的小尾巴写入
+			for(i=0;i<8;i++){                                   //W25Q64每次写入256字节，对C8T6而言，1扇区1024字节，需要循环4次写
+				w25q64_page_write(&UpdataA.Updata_buff[i*256], (UpdataA.xmodem_NB/16) * 8 + i + UpdataA.W25q64_blockNB * 64 *4); //将接受的数据写入W25Q64
+			}
+		}
+
+
+			FlagCLR(BootSta_Flag,FLASH_XMODEM_FALG);                       //清除CMD5_XMODEM_FLAG
+			OTA_Info.Firelen[UpdataA.W25q64_blockNB] = UpdataA.xmodem_NB * 128;   //计算并保存本次传输的程序大小
+			at24cxx_write_OTA_info();                                  //保存到24C02
+			delay_1ms(100);                                          //延时
+			bootloader_info();                                      //输出命令行信息
+
+	}
 }
 
 /* 将外部FLASH下载到A区 */
