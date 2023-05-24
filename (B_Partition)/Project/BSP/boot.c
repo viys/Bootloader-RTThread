@@ -9,6 +9,126 @@
 
 load_a LOAD_A;
 
+/* BootLoader分支判断 */
+void bootloader_branch(void)
+{
+	/* 判断是否进入命令行 */
+	if(bootloader_enter(10) == 0){
+	
+		/* 不进入命令行 */
+		/* 进行更新标志位判断 */
+		if(OTA_Info.OTA_flag == OTA_SET_FLAG){
+			u0_printf("OTA updata\r\n");
+			FlagSET(BootSta_Flag,UPDATA_A_FLAG);
+			UpdataA.W25q64_blockNB = 0;
+		}else{
+			u0_printf("Jump to A partition\r\n");
+			load_A(GD32_A_SADDR);
+		}
+	}
+	
+	/* 进入BootLoader命令行或者跳转A分区失败 */	
+	u0_printf("Enter BootLoader command\r\n");
+	/* 打印命令信息 */
+	bootloader_info();
+}
+
+/* 设置SP指针 */
+__asm void MSR_SP(uint32_t addr)
+{
+	MSR MSP, r0
+	BX R14
+}
+
+/* 跳转到A区(addr为A区地址) */
+void load_A(uint32_t addr)
+{
+	if(*(uint32_t *)addr >= GD32_RAM_SADDR && *(uint32_t *)addr <= GD32_RAM_EADDR){
+		/* 保存 SP 指针 */
+		MSR_SP(*(uint32_t *)addr);
+		/* 保存 PC 指针 */
+		LOAD_A = (load_a)*(uint32_t *)(addr + 4);
+		bootloader_peripheral_clear();
+		LOAD_A();
+	}else{
+		u0_printf("! Failed to jump to A partition\r\n");
+	
+	}
+}
+
+/* 换区重置外设 */
+void bootloader_peripheral_clear(void)
+{
+	/* 用过什么清理什么 */
+	usart_deinit(USART0);
+	usart_deinit(USART2);
+	gpio_deinit(GPIOA);
+	gpio_deinit(GPIOB);
+	spi_i2s_deinit(SPI0);
+	i2c_deinit(I2C0);
+}
+
+/* 读取eeprom内的信息 */
+void at24cxx_read_OTA_info(void)
+{
+	/* 清理 OTA_Info */
+	memset(&OTA_Info,0,OTA_InfoCB_SIZE);
+	/* 存取更新标志位 OTA_Info */
+	eeprom_buffer_read_timeout((uint8_t *)&OTA_Info,EEP_FIRST_PAGE,OTA_InfoCB_SIZE);
+
+//	u0_printf("%x\r\n",OTA_Info.OTA_flag);
+}
+
+/* 向eeprom保存信息 */
+void at24cxx_write_OTA_info(void)
+{
+	uint8_t *wptr;
+	
+	wptr = (uint8_t *)&OTA_Info;
+	/* 不知道这里为什么不能一次性发16个 */
+	for(uint8_t i=0; i<OTA_InfoCB_SIZE/8; i++){
+		eeprom_page_write_timeout(wptr+i*8,i*8,8);
+		delay_1ms(5);
+	}
+}
+
+/* 读取norflash内的信息 */
+void w25q64_read_OTA_info(void)
+{
+	/* 此处会出现大小端问题 */
+	memset(&OTA_Info,0,OTA_InfoCB_SIZE);
+	//保存OTA_Info(待补充)
+	w25q64_read((uint8_t *)&OTA_Info,0,OTA_InfoCB_SIZE);
+}
+
+/* 擦除A区 */
+void erase_A(void)
+{
+	u0_printf("Erase A partition\r\n");
+	/* 擦除A区 */
+	gd32_erase_flash(GD32_A_SPAGE,GD32_A_PAGE_NUM);
+	
+	u0_printf("Finsh erase\r\n");
+
+}
+
+/* 命令行入口 */
+uint8_t bootloader_enter(uint8_t timeout)
+{
+	u0_printf("Please enter 'w' within %ds to enter BootLoader command\r\n",timeout/10);
+	while(timeout--){
+		delay_1ms(100);
+		if(U0_RxBuff[0] == 'w'){
+			
+			/* 进入命令行 */
+			return 1;
+		}
+	}
+	
+	return 0;
+	
+}
+
 /* 串口0输入检测 */
 void u0_input_detection(void)
 {
@@ -24,6 +144,7 @@ void u0_input_detection(void)
 	}
 }
 
+/* 发送Xmodem传输起始位 */
 void u0_printf_C(void)
 {
 	/* 串口IAP下载代码 */
@@ -40,24 +161,8 @@ void u0_printf_C(void)
 	}
 }
 
-static uint8_t bootloader_enter(uint8_t timeout)
-{
-	u0_printf("Please enter 'w' within %ds to enter BootLoader command\r\n",timeout/10);
-	while(timeout--){
-		delay_1ms(100);
-		if(U0_RxBuff[0] == 'w'){
-			
-			/* 进入命令行 */
-			return 1;
-		}
-	}
-	
-	return 0;
-	
-}
-
 /* 输出Bootloader命令行信息 */
-static void bootloader_info(void)
+void bootloader_info(void)
 {
 	/* 擦除A区代码 */
 	u0_printf("[1]Erase A partition\r\n");
@@ -122,12 +227,7 @@ void event_cmd_check(uint8_t *data,uint16_t datalen)
 {
 		if((datalen==1)&&(data[0]=='1')){
 		/* 擦除A区代码 */
-		
-		u0_printf("Erase A partition\r\n");
-		/* 擦除A区 */
-		gd32_erase_flash(GD32_A_SPAGE,GD32_A_PAGE_NUM);
-		
-		u0_printf("Finsh erase\r\n");
+		erase_A();
 		
 		bootloader_info();
 	}else if((datalen==1)&&(data[0]=='2')){
@@ -163,16 +263,16 @@ void event_cmd_check(uint8_t *data,uint16_t datalen)
 		u0_printf("Download program to e-flash\r\n");
 		
 				
-		/* 选择写入的Firelen区 */
-		u0_printf("Please select Firelen(1~9)\r\n");
+		/* 选择写入的FIRM_Block区 */
+		u0_printf("Please select FIRM_Block(1~9)\r\n");
 		FlagSET(BootSta_Flag,WRITE_E_FLASH_FLAG);
 		
 	}else if((datalen==1)&&(data[0]=='6')){
 		/* 使用外部FALSH内的程序 */
 		
 		u0_printf("Use e-flash`s program\r\n");
-		/* 选择Firelen区的程序 */
-		u0_printf("Please select Firelen(1~9)\r\n");
+		/* 选择FIRM_Block区的程序 */
+		u0_printf("Please select FIRM_Block(1~9)\r\n");
 		
 		/* 相应的Flag置位 */
 		FlagSET(BootSta_Flag,READ_EFLASH_FLAG);
@@ -186,16 +286,8 @@ void event_cmd_check(uint8_t *data,uint16_t datalen)
 		NVIC_SystemReset();
 	}else if((datalen==1)&&(data[0]=='8')){
 		FlagSET(BootSta_Flag,DBG_FLASH_FLAG);
-		u0_printf("Please select Firelen(1~9)\r\n");
+		u0_printf("Please select FIRM_Block(1~9)\r\n");
 	}
-}
-
-
-/* 擦除A区 */
-void event_erase_A(uint8_t *data,uint16_t datalen)
-{
-	
-
 }
 
 /* IAP下载A区代码 */
@@ -298,29 +390,29 @@ void event_write_eflash(uint8_t *data,uint16_t datalen)
 			
 			UpdataA.Xmodem_Timer = 0;
 			UpdataA.xmodem_NB = 0;
-			OTA_Info.Firelen[UpdataA.W25q64_blockNB] = 0;
+			OTA_Info.FIRM_Block[UpdataA.W25q64_blockNB] = 0;
 			
 			/* 目前只能升级64k的程序 */
 			w25q64_erase64k(UpdataA.W25q64_blockNB);
-			u0_printf("Firelen[%d] been erase\r\n",UpdataA.W25q64_blockNB);
+			u0_printf("FIRM_Block[%d] been erase\r\n",UpdataA.W25q64_blockNB);
 			
 			delay_1ms(100);
 			
-			/* 通过Xmodem协议,串口IAP下载程序到外部FLASH Firelen[几],请使用二进制文件 */
-			u0_printf("Via Xmodem:IAP download program to e-flash Firelen[%d],please upload bin\r\n",UpdataA.W25q64_blockNB);
+			/* 通过Xmodem协议,串口IAP下载程序到外部FLASH FIRM_Block[几],请使用二进制文件 */
+			u0_printf("Via Xmodem:IAP download program to e-flash FIRM_Block[%d],please upload bin\r\n",UpdataA.W25q64_blockNB);
 			FlagSET(BootSta_Flag,IAP_XMODEC_FLAG);
 			/* 清除相关标志位 */
 			FlagCLR(BootSta_Flag,WRITE_E_FLASH_FLAG);
 			
 		}else{
 			
-			/* Firelen选择编号错误 */
-			u0_printf("Firelen selection is wrong\r\n");
+			/* FIRM_Block选择编号错误 */
+			u0_printf("FIRM_Block selection is wrong\r\n");
 			}
 	}else{
 		
-		/* Firelen长度错误 */
-		u0_printf("Firelen length is wrong\r\n");
+		/* FIRM_Block长度错误 */
+		u0_printf("FIRM_Block length is wrong\r\n");
 
 	}
 
@@ -372,7 +464,7 @@ void event_IAP_download_eflash(uint8_t *data,uint16_t datalen)
 
 		FlagCLR(BootSta_Flag,FLASH_XMODEM_FALG);
 		/* 计算并保存本次传输的程序大小 */
-		OTA_Info.Firelen[UpdataA.W25q64_blockNB] = UpdataA.xmodem_NB * 128;   
+		OTA_Info.FIRM_Block[UpdataA.W25q64_blockNB] = UpdataA.xmodem_NB * 128;   
 		/* 在eeprom中保存信息 */
 		at24cxx_write_OTA_info();
 		delay_1ms(100);
@@ -394,7 +486,7 @@ void event_read_eflash(uint8_t *data,uint16_t datalen)
 			u0_printf("Enter correctly\r\n");
 			UpdataA.W25q64_blockNB = data[0] - '0';
 			
-			u0_printf("Firelen[%d] been select\r\n",UpdataA.W25q64_blockNB);
+			u0_printf("FIRM_Block[%d] been select\r\n",UpdataA.W25q64_blockNB);
 			
 			/* 相关标志位置位 */
 			FlagCLR(BootSta_Flag,READ_EFLASH_FLAG);
@@ -405,16 +497,15 @@ void event_read_eflash(uint8_t *data,uint16_t datalen)
 			FlagSET(BootSta_Flag,UPDATA_A_FLAG);					
 			
 		}else{
-			/* Firelen选择编号错误 */
-			u0_printf("Firelen selection is wrong\r\n");
+			/* FIRM_Block选择编号错误 */
+			u0_printf("FIRM_Block selection is wrong\r\n");
 		}
 		
 	}else{
-		/* Firelen长度错误 */
-		u0_printf("Firelen length is wrong\r\n");
+		/* FIRM_Block长度错误 */
+		u0_printf("FIRM_Block length is wrong\r\n");
 	}
 }
-
 
 /* 将外部FLAH中代码写入A区 */
 void event_write_eflash_to_A(void)
@@ -424,22 +515,18 @@ void event_write_eflash_to_A(void)
 	if(FlagGET(BootSta_Flag,UPDATA_A_FLAG)){
 		/* 更新A区 */
 		
-		u0_printf("Firelen[%d] Length: %d bytes\r\n",UpdataA.W25q64_blockNB,OTA_Info.Firelen[UpdataA.W25q64_blockNB]);
+		u0_printf("FIRM_Block[%d] Length: %d bytes\r\n",UpdataA.W25q64_blockNB,OTA_Info.FIRM_Block[UpdataA.W25q64_blockNB]);
 		
 		/* 保证将要写入的数据是4字节对齐的 */
-		if(OTA_Info.Firelen[UpdataA.W25q64_blockNB]%4 == 0){
+		if(OTA_Info.FIRM_Block[UpdataA.W25q64_blockNB]%4 == 0){
 			/* 长度正确 */
 			u0_printf("Length true\r\n");
 			
-			u0_printf("Erase A partition\r\n");
 			/* 擦除 GD32 内部 FLASH */
-			gd32_erase_flash(GD32_A_SADDR,GD32_A_PAGE_NUM);
-			
-			u0_printf("Finsh erase\r\n");
-			
+			erase_A();
 			
 			/* 更新代码 */
-			for(i=0; i<OTA_Info.Firelen[UpdataA.W25q64_blockNB]/GD32_PAGE_SIZE; i++){
+			for(i=0; i<OTA_Info.FIRM_Block[UpdataA.W25q64_blockNB]/GD32_PAGE_SIZE; i++){
 				/* 从 FLASH 读取代码 */
 				w25q64_read(UpdataA.Updata_buff,\
 							i*GD32_PAGE_SIZE+UpdataA.W25q64_blockNB*SPI_FLASH_BlockSize,\
@@ -452,15 +539,15 @@ void event_write_eflash_to_A(void)
 			}
 			
 			/* 更新剩余代码 */
-			if(OTA_Info.Firelen[UpdataA.W25q64_blockNB]%GD32_PAGE_SIZE != 0){
+			if(OTA_Info.FIRM_Block[UpdataA.W25q64_blockNB]%GD32_PAGE_SIZE != 0){
 				memset(UpdataA.Updata_buff,0,GD32_PAGE_SIZE);
 				w25q64_read(UpdataA.Updata_buff,\
 							i*GD32_PAGE_SIZE+UpdataA.W25q64_blockNB*SPI_FLASH_BlockSize,\
-							OTA_Info.Firelen[UpdataA.W25q64_blockNB]%GD32_PAGE_SIZE);
+							OTA_Info.FIRM_Block[UpdataA.W25q64_blockNB]%GD32_PAGE_SIZE);
 
 				gd32_write_flash(GD32_A_SADDR + i*GD32_PAGE_SIZE,\
 								(uint32_t *)UpdataA.Updata_buff,\
-								OTA_Info.Firelen[UpdataA.W25q64_blockNB]%GD32_PAGE_SIZE);
+								OTA_Info.FIRM_Block[UpdataA.W25q64_blockNB]%GD32_PAGE_SIZE);
 				u0_printf("+\r\n");
 
 			}
@@ -497,7 +584,7 @@ void event_dbg_eflash_select(uint8_t *data,uint16_t datalen)
 			u0_printf("Enter correctly\r\n");
 			UpdataA.W25q64_blockNB = data[0] - '0';
 			
-			u0_printf("Firelen[%d] been select\r\n",UpdataA.W25q64_blockNB);
+			u0_printf("FIRM_Block[%d] been select\r\n",UpdataA.W25q64_blockNB);
 			
 			u0_printf("Please select GD32 page num,enter f01 or f02 ...\r\n");
 			
@@ -537,8 +624,8 @@ void event_dbg_eflash_select(uint8_t *data,uint16_t datalen)
 	
 	}else{
 		
-		/* Firelen长度错误 */
-		u0_printf("Firelen length is wrong\r\n");
+		/* FIRM_Block长度错误 */
+		u0_printf("FIRM_Block length is wrong\r\n");
 
 	}
 
@@ -571,92 +658,6 @@ void bootloader_event(uint8_t *data,uint16_t datalen)
 	}
 }
 
-/* BootLoader分支判断 */
-void bootloader_branch(void)
-{
-	/* 判断是否进入命令行 */
-	if(bootloader_enter(10) == 0){
-	
-		/* 不进入命令行 */
-		/* 进行更新标志位判断 */
-		if(OTA_Info.OTA_flag == OTA_SET_FLAG){
-			u0_printf("OTA updata\r\n");
-			FlagSET(BootSta_Flag,UPDATA_A_FLAG);
-			UpdataA.W25q64_blockNB = 0;
-		}else{
-			u0_printf("Jump to A partition\r\n");
-			load_A(GD32_A_SADDR);
-		}
-	}
-	
-	/* 进入BootLoader命令行或者跳转A分区失败 */	
-	u0_printf("Enter BootLoader command\r\n");
-	/* 打印命令信息 */
-	bootloader_info();
-}
-
-/* 设置SP指针 */
-__asm void MSR_SP(uint32_t addr)
-{
-	MSR MSP, r0
-	BX R14
-}
-
-/* 跳转到A区(addr为A区地址) */
-void load_A(uint32_t addr)
-{
-	if(*(uint32_t *)addr >= GD32_RAM_SADDR && *(uint32_t *)addr <= GD32_RAM_EADDR){
-		/* 保存 SP 指针 */
-		MSR_SP(*(uint32_t *)addr);
-		/* 保存 PC 指针 */
-		LOAD_A = (load_a)*(uint32_t *)(addr + 4);
-		bootloader_peripheral_clear();
-		LOAD_A();
-	}else{
-		u0_printf("! Failed to jump to A partition\r\n");
-	
-	}
-}
-
-void bootloader_peripheral_clear(void)
-{
-	/* 用过什么清理什么 */
-	usart_deinit(USART0);
-	usart_deinit(USART2);
-	gpio_deinit(GPIOA);
-	gpio_deinit(GPIOB);
-	spi_i2s_deinit(SPI0);
-}
-
-void at24cxx_read_OTA_info(void)
-{
-	/* 清理 OTA_Info */
-	memset(&OTA_Info,0,OTA_InfoCB_SIZE);
-	/* 存取更新标志位 OTA_Info */
-	eeprom_buffer_read_timeout((uint8_t *)&OTA_Info,EEP_FIRST_PAGE,OTA_InfoCB_SIZE);
-
-//	u0_printf("%x\r\n",OTA_Info.OTA_flag);
-}
-
-void at24cxx_write_OTA_info(void)
-{
-	uint8_t *wptr;
-	
-	wptr = (uint8_t *)&OTA_Info;
-	/* 不知道这里为什么不能一次性发16个 */
-	for(uint8_t i=0; i<OTA_InfoCB_SIZE/8; i++){
-		eeprom_page_write_timeout(wptr+i*8,i*8,8);
-		delay_1ms(5);
-	}
-}
-
-void w25q64_read_OTA_info(void)
-{
-	/* 此处会出现大小端问题 */
-	memset(&OTA_Info,0,OTA_InfoCB_SIZE);
-	//保存OTA_Info(待补充)
-	w25q64_read((uint8_t *)&OTA_Info,0,OTA_InfoCB_SIZE);
-}
 
 
 

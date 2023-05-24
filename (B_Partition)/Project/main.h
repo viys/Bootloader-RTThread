@@ -52,7 +52,7 @@ typedef struct{
 	/* 更新标志位,等于 UPDATA_A_FLAG 时切换OTA更新A区分支 */
 	uint32_t OTA_flag;
 	/* 不同块中固件的长度,0号成员固定为OTA的大小 */
-	uint32_t Firelen[11];
+	uint32_t FIRM_Block[11];
 	/* 固件版本号 */
 	uint8_t OTA_ver[32];
 }OTA_InfoCB;

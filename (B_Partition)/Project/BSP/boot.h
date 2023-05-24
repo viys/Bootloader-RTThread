@@ -5,6 +5,10 @@
 
 typedef void (*load_a)(void);
 
+/* 命令行入口 */
+uint8_t bootloader_enter(uint8_t timeout);
+/* 输出Bootloader命令行信息 */
+void bootloader_info(void);
 /* 串口0输入检测 */
 void u0_input_detection(void);
 /* 串口0发送Xmodem开始传输信号 */
