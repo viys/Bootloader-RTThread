@@ -32,6 +32,7 @@
 #define WRITE_E_FLASH_FLAG	0x00000010	//向外部FLASH写程序
 #define FLASH_XMODEM_FALG	0x00000020	//向外部FLASH传输文件
 #define READ_EFLASH_FLAG	0x00000040	//将外部FLASH内的程序写入A区
+#define DBG_FLASH_FLAG		0x00000080	//DBGFALH
 
 /* uint16_t 大小端互换 */
 #define BigLittleSwap16(A)  ((((uint16_t)(A) & 0xff00) >> 8) | \

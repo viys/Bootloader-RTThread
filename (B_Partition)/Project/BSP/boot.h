@@ -5,8 +5,12 @@
 
 typedef void (*load_a)(void);
 
+/* 串口0输入检测 */
+void u0_input_detection(void);
+/* 串口0发送Xmodem开始传输信号 */
+void u0_printf_C(void);
 /* 选择分区 */
-void bootloader_brance(void);
+void bootloader_branch(void);
 /* Bootloader命令行事件处理 */
 void bootloader_event(uint8_t *data,uint16_t datalen);
 /* 保存 SP 指针 */
@@ -27,6 +31,6 @@ void print_OTA_update_value(uint8_t sw);
 uint16_t xmodem_CRC16(uint8_t *data,uint16_t datalen);
 /* 将外部FLAH中代码写入A区 */
 void event_write_eflash_to_A(void);
-void dbg_efaslh(void);
+
 
 #endif /*__BOOT_H */

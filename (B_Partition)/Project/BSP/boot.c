@@ -9,64 +9,35 @@
 
 load_a LOAD_A;
 
-void dbg_efaslh(void)
+/* 串口0输入检测 */
+void u0_input_detection(void)
 {
-	uint8_t wdata[256]={0,1,2,3,4,5,6,7,8,9,
-						0,1,2,3,4,5,6,7,8,9,
-						0,1,2,3,4,5,6,7,8,9,
-						0,1,2,3,4,5,6,7,8,9,
-						0,1,2,3,4,5,6,7,8,9,
-						0,1,2,3,4,5,6,7,8,9,
-						0,1,2,3,4,5,6,7,8,9,
-						0,1,2,3,4,5,6,7,8,9,
-						0,1,2,3,4,5,6,7,8,9,
-						0,1,2,3,4,5,6,7,8,9,
-						0,1,2,3,4,5,6,7,8,9,
-						0,1,2,3,4,5,6,7,8,9,
-						0,1,2,3,4,5,6,7,8,9,
-						0,1,2,3,4,5,6,7,8,9,
-						0,1,2,3,4,5,6,7,8,9,
-						0,1,2,3,4,5,6,7,8,9,
-						0,1,2,3,4,5,6,7,8,9,
-						0,1,2,3,4,5,6,7,8,9,
-						0,1,2,3,4,5,6,7,8,9,
-						0,1,2,3,4,5,6,7,8,9,
-						0,1,2,3,4,5,6,7,8,9,
-						0,1,2,3,4,5,6,7,8,9,
-						0,1,2,3,4,5,6,7,8,9,
-						0,1,2,3,4,5,6,7,8,9,
-						0,1,2,3,4,5,6,7,8,9
-						};
-
-//		w25q64_erase64k(1);
-						
-//	for(uint16_t i=0; i<256; i++){//2k flash 一次写入258字节
-//		w25q64_page_write(wdata,\
-//						  1*64*4 + i);
-//		u0_printf("writing\r\n");
-//	}
-	
-//DBG
-//	for(uint8_t i=0;i<32; i++){
-//		w25q64_read(UpdataA.Updata_buff,1*64*1024+i*1024,2048);
-//		for(uint16_t i=0; i<2048; i++){
-//			u2_printf("%x ",UpdataA.Updata_buff[i]);
-//		}
-//	}
-
-
-//		w25q64_page_write(wdata,\
-//						  1*64*4);
-//		u0_printf("writing\r\n");
-
-//	
-////DBG
-
-		w25q64_read(UpdataA.Updata_buff,2*64*1024-2048,2048);
-		for(uint16_t i=0; i<2048; i++){
-			u2_printf("%x ",UpdataA.Updata_buff[i]);
+	if(U0CB.URxDataOUT != U0CB.URxDataIN){
+		/* 命令处理 */
+		bootloader_event(U0CB.URxDataOUT->start,U0CB.URxDataOUT->end - U0CB.URxDataOUT->start + 1);
+		U0CB.URxDataOUT ++;
+		
+		if(U0CB.URxDataOUT == U0CB.URxDataEND){
+			U0CB.URxDataOUT = &U0CB.URxDataPtr[0];
 		}
+	
+	}
+}
 
+void u0_printf_C(void)
+{
+	/* 串口IAP下载代码 */
+	if(FlagGET(BootSta_Flag,IAP_XMODEC_FLAG)){
+		
+		/* 达到Xmodem约定时间 */
+		if(UpdataA.Xmodem_Timer >= 1000){
+			/* 发送下载起始位 */
+			u0_printf("C");
+			/* 计数值清零 */
+			UpdataA.Xmodem_Timer = 0;
+		}
+		
+	}
 }
 
 static uint8_t bootloader_enter(uint8_t timeout)
@@ -102,6 +73,8 @@ static void bootloader_info(void)
 	u0_printf("[6]Use E-Flash`s programs\r\n");
 	/* 软件重启 */
 	u0_printf("[7]Reboot\r\n");
+	/* DBG FLASH */
+	u0_printf("[8]Debug flash\r\n");
 }
 
 /* 16位CRC校验 */
@@ -211,6 +184,9 @@ void event_cmd_check(uint8_t *data,uint16_t datalen)
 		delay_1ms(100);
 		/* 重启 */
 		NVIC_SystemReset();
+	}else if((datalen==1)&&(data[0]=='8')){
+		FlagSET(BootSta_Flag,DBG_FLASH_FLAG);
+		u0_printf("Please select Firelen(1~9)\r\n");
 	}
 }
 
@@ -326,6 +302,9 @@ void event_write_eflash(uint8_t *data,uint16_t datalen)
 			
 			/* 目前只能升级64k的程序 */
 			w25q64_erase64k(UpdataA.W25q64_blockNB);
+			u0_printf("Firelen[%d] been erase\r\n",UpdataA.W25q64_blockNB);
+			
+			delay_1ms(100);
 			
 			/* 通过Xmodem协议,串口IAP下载程序到外部FLASH Firelen[几],请使用二进制文件 */
 			u0_printf("Via Xmodem:IAP download program to e-flash Firelen[%d],please upload bin\r\n",UpdataA.W25q64_blockNB);
@@ -347,7 +326,7 @@ void event_write_eflash(uint8_t *data,uint16_t datalen)
 
 }
 
-
+/* IAP下载外部代码 */
 void event_IAP_download_eflash(uint8_t *data,uint16_t datalen)
 {
 	if((datalen==133)&&(data[0]==0x01)){
@@ -370,7 +349,7 @@ void event_IAP_download_eflash(uint8_t *data,uint16_t datalen)
 				/* 每次写入256字节,1扇区2048字,需要循环8次写 */
 				for(uint8_t i=0; i<8; i++){//2k flash 一次写入258字节
 					w25q64_page_write(&UpdataA.Updata_buff[i*256],\
-									  (UpdataA.xmodem_NB/(GD32_PAGE_SIZE/SPI_FLASH_PerWritePageSize)-1)*8+i+UpdataA.W25q64_blockNB*SPI_FLASH_BlockSize/(GD32_PAGE_SIZE/SPI_FLASH_PerWritePageSize));
+									  (UpdataA.xmodem_NB/(GD32_PAGE_SIZE/128)-1)*8+i+UpdataA.W25q64_blockNB*SPI_FLASH_BlockSize/SPI_FLASH_PerWritePageSize);
 				}
 			}
 			u0_printf("\x06");
@@ -384,9 +363,10 @@ void event_IAP_download_eflash(uint8_t *data,uint16_t datalen)
 		
 		if((UpdataA.xmodem_NB%(GD32_PAGE_SIZE/128))!=0){
 			
+			memset(&UpdataA.Updata_buff[(UpdataA.xmodem_NB%(GD32_PAGE_SIZE/128))*128],0xff,GD32_PAGE_SIZE-(UpdataA.xmodem_NB%(GD32_PAGE_SIZE/128)*128));
 			for(uint8_t i=0; i<8; i++){//2k flash 一次写入258字节
 				w25q64_page_write(&UpdataA.Updata_buff[i*256],\
-								  (UpdataA.xmodem_NB/(GD32_PAGE_SIZE/SPI_FLASH_PerWritePageSize))*8+i+UpdataA.W25q64_blockNB*SPI_FLASH_BlockSize/(GD32_PAGE_SIZE/SPI_FLASH_PerWritePageSize));
+								  (UpdataA.xmodem_NB/(GD32_PAGE_SIZE/128))*8+i+UpdataA.W25q64_blockNB*SPI_FLASH_BlockSize/SPI_FLASH_PerWritePageSize);
 			}
 		}
 
@@ -397,46 +377,6 @@ void event_IAP_download_eflash(uint8_t *data,uint16_t datalen)
 		at24cxx_write_OTA_info();
 		delay_1ms(100);
 		bootloader_info();
-	}
-}
-
-void event_IAP_download_eflash2(uint8_t *data,uint16_t datalen)
-{
-	uint16_t i=0;
-	//如果 IAP_XMODEMD_FLAG 置位表示开始Xmodem协议接收数据
-	if((datalen==133)&&(data[0]==0x01)){                                               //判断 Xmodem协议一包总长133字节 且 第一个字节帧头是0x01
-		FlagCLR(BootSta_Flag,IAP_XMODEC_FLAG);                                              //已经收到数据包了，所以清除 IAP_XMODEMC_FLAG，不再发送大写C
-		UpdataA.Xmodem_CRC = xmodem_CRC16(&data[3],128);                                //计算本次接收的数据包数据的CRC
-		if(UpdataA.Xmodem_CRC == data[131]*256 + data[132]){                            //计算的CRC 和 接收的CRC 比较，一样说明正确，进入if
-			UpdataA.xmodem_NB++;                                                        //已接收的数据包数量+1
-			memcpy(&UpdataA.Updata_buff[((UpdataA.xmodem_NB-1)%(GD32_PAGE_SIZE/128))*128],&data[3],128);   //将本次接收的数据，暂存到UpdataA.Updatabuff缓冲区
-			if((UpdataA.xmodem_NB%(GD32_PAGE_SIZE/128))==0){                            //对C8T6而言，如果已接收数据包数量是8的整数倍，说明都满1扇区1024字节，进入if
-				
-				for(i=0;i<8;i++){                                                  //W25Q64每次写入256字节，对C8T6而言，1扇区1024字节，需要循环4次写
-					w25q64_page_write(&UpdataA.Updata_buff[i*256], (UpdataA.xmodem_NB/16 - 1) * 8 + i + UpdataA.W25q64_blockNB * 64 *4);    //将接受的数据写入W25Q64
-				}					
-
-			}
-			u0_printf("\x06");    //正确，返回ACK给CRT软件
-		}else{                    //如果CRC校验错误，进入else
-			u0_printf("\x15");    //返回NCK给CRT软件
-		}
-	}
-	if((datalen==1)&&(data[0]==0x04)){                              //如果收到1个字节数据 且 是0x04，进入if，说明收到EOT，表明数据已经发生完毕
-		u0_printf("\x06");                                          //返回ACK给CRT软件
-		if((UpdataA.xmodem_NB%(GD32_PAGE_SIZE/128))!=0){             //对C8T6而言，判断是否还有不满1扇区1024字节的数据，如果有进入if，把剩余的小尾巴写入
-			for(i=0;i<8;i++){                                   //W25Q64每次写入256字节，对C8T6而言，1扇区1024字节，需要循环4次写
-				w25q64_page_write(&UpdataA.Updata_buff[i*256], (UpdataA.xmodem_NB/16) * 8 + i + UpdataA.W25q64_blockNB * 64 *4); //将接受的数据写入W25Q64
-			}
-		}
-
-
-			FlagCLR(BootSta_Flag,FLASH_XMODEM_FALG);                       //清除CMD5_XMODEM_FLAG
-			OTA_Info.Firelen[UpdataA.W25q64_blockNB] = UpdataA.xmodem_NB * 128;   //计算并保存本次传输的程序大小
-			at24cxx_write_OTA_info();                                  //保存到24C02
-			delay_1ms(100);                                          //延时
-			bootloader_info();                                      //输出命令行信息
-
 	}
 }
 
@@ -454,8 +394,14 @@ void event_read_eflash(uint8_t *data,uint16_t datalen)
 			u0_printf("Enter correctly\r\n");
 			UpdataA.W25q64_blockNB = data[0] - '0';
 			
+			u0_printf("Firelen[%d] been select\r\n",UpdataA.W25q64_blockNB);
+			
 			/* 相关标志位置位 */
 			FlagCLR(BootSta_Flag,READ_EFLASH_FLAG);
+			
+			/* 请等待GD32内部FALSH擦除完毕 */
+			u0_printf("waiting\r\n");
+			
 			FlagSET(BootSta_Flag,UPDATA_A_FLAG);					
 			
 		}else{
@@ -473,21 +419,27 @@ void event_read_eflash(uint8_t *data,uint16_t datalen)
 /* 将外部FLAH中代码写入A区 */
 void event_write_eflash_to_A(void)
 {
+	uint16_t i=0;
+	
 	if(FlagGET(BootSta_Flag,UPDATA_A_FLAG)){
 		/* 更新A区 */
 		
-		u0_printf("Length: %d bytes\r\n",OTA_Info.Firelen[UpdataA.W25q64_blockNB]);
+		u0_printf("Firelen[%d] Length: %d bytes\r\n",UpdataA.W25q64_blockNB,OTA_Info.Firelen[UpdataA.W25q64_blockNB]);
 		
 		/* 保证将要写入的数据是4字节对齐的 */
 		if(OTA_Info.Firelen[UpdataA.W25q64_blockNB]%4 == 0){
 			/* 长度正确 */
 			u0_printf("Length true\r\n");
 			
+			u0_printf("Erase A partition\r\n");
 			/* 擦除 GD32 内部 FLASH */
 			gd32_erase_flash(GD32_A_SADDR,GD32_A_PAGE_NUM);
 			
+			u0_printf("Finsh erase\r\n");
+			
+			
 			/* 更新代码 */
-			for(uint8_t i=0; i<OTA_Info.Firelen[UpdataA.W25q64_blockNB]/GD32_PAGE_SIZE; i++){
+			for(i=0; i<OTA_Info.Firelen[UpdataA.W25q64_blockNB]/GD32_PAGE_SIZE; i++){
 				/* 从 FLASH 读取代码 */
 				w25q64_read(UpdataA.Updata_buff,\
 							i*GD32_PAGE_SIZE+UpdataA.W25q64_blockNB*SPI_FLASH_BlockSize,\
@@ -500,13 +452,15 @@ void event_write_eflash_to_A(void)
 			}
 			
 			/* 更新剩余代码 */
-			if(OTA_Info.Firelen[UpdataA.W25q64_blockNB]%4 != 0){
+			if(OTA_Info.Firelen[UpdataA.W25q64_blockNB]%GD32_PAGE_SIZE != 0){
+				memset(UpdataA.Updata_buff,0,GD32_PAGE_SIZE);
 				w25q64_read(UpdataA.Updata_buff,\
-							OTA_Info.Firelen[UpdataA.W25q64_blockNB]/GD32_PAGE_SIZE*GD32_PAGE_SIZE+UpdataA.W25q64_blockNB*SPI_FLASH_BlockSize,\
-							GD32_PAGE_SIZE);
-				gd32_write_flash(GD32_A_SADDR + OTA_Info.Firelen[UpdataA.W25q64_blockNB]/GD32_PAGE_SIZE*GD32_PAGE_SIZE,\
+							i*GD32_PAGE_SIZE+UpdataA.W25q64_blockNB*SPI_FLASH_BlockSize,\
+							OTA_Info.Firelen[UpdataA.W25q64_blockNB]%GD32_PAGE_SIZE);
+
+				gd32_write_flash(GD32_A_SADDR + i*GD32_PAGE_SIZE,\
 								(uint32_t *)UpdataA.Updata_buff,\
-								GD32_PAGE_SIZE);
+								OTA_Info.Firelen[UpdataA.W25q64_blockNB]%GD32_PAGE_SIZE);
 				u0_printf("+\r\n");
 
 			}
@@ -530,6 +484,66 @@ void event_write_eflash_to_A(void)
 	}
 }
 
+/* 向外部FLASH写程序 */
+void event_dbg_eflash_select(uint8_t *data,uint16_t datalen)
+{
+	uint8_t page;
+	/* 检测到输入一个字节 */
+	if(datalen==1){
+		
+		/* 判断是否输入了1-9 */
+		if(data[0]>='1'&&data[0]<='9'){
+			
+			u0_printf("Enter correctly\r\n");
+			UpdataA.W25q64_blockNB = data[0] - '0';
+			
+			u0_printf("Firelen[%d] been select\r\n",UpdataA.W25q64_blockNB);
+			
+			u0_printf("Please select GD32 page num,enter f01 or f02 ...\r\n");
+			
+		}else{
+			
+			/* 选择编号错误 */
+			u0_printf("Enter is wrong\r\n");
+			}
+	}else if(datalen==3){
+		if(data[0]=='f'){
+			
+			page = (data[1]-'0')*10 + (data[2]-'0');
+			
+			/* 退出命令 */
+			if(page==99){
+				/* 清除相关标志位 */
+				FlagCLR(BootSta_Flag,DBG_FLASH_FLAG);
+				u0_printf("Exit debug\r\n");
+				bootloader_info();
+			}
+			
+			if(page!=99){
+				u0_printf("\r\nFirelen[%d] page:%d\r\n",UpdataA.W25q64_blockNB,page);
+				w25q64_read(UpdataA.Updata_buff,UpdataA.W25q64_blockNB*64*1024+page*1024,1024);
+				for(uint16_t i=0; i<1024; i++){
+					u0_printf("%2x ",UpdataA.Updata_buff[i]);
+				}
+			}
+			
+
+		}else{
+		
+			/* 选择编号错误 */
+			u0_printf("Enter is wrong\r\n");
+		}
+	
+	
+	}else{
+		
+		/* Firelen长度错误 */
+		u0_printf("Firelen length is wrong\r\n");
+
+	}
+
+}
+
 /* Bootloader命令行事件处理 */
 void bootloader_event(uint8_t *data,uint16_t datalen)
 {
@@ -551,11 +565,14 @@ void bootloader_event(uint8_t *data,uint16_t datalen)
 	}else if(FlagGET(BootSta_Flag,READ_EFLASH_FLAG)){
 		/* 将外部FLASH代码写入A区 */
 		event_read_eflash(data,datalen);
+	}else if(FlagGET(BootSta_Flag,DBG_FLASH_FLAG)){
+		/* flash debug */
+		event_dbg_eflash_select(data,datalen);
 	}
 }
 
-
-void bootloader_brance(void)
+/* BootLoader分支判断 */
+void bootloader_branch(void)
 {
 	/* 判断是否进入命令行 */
 	if(bootloader_enter(10) == 0){
@@ -578,12 +595,14 @@ void bootloader_brance(void)
 	bootloader_info();
 }
 
+/* 设置SP指针 */
 __asm void MSR_SP(uint32_t addr)
 {
 	MSR MSP, r0
 	BX R14
 }
 
+/* 跳转到A区(addr为A区地址) */
 void load_A(uint32_t addr)
 {
 	if(*(uint32_t *)addr >= GD32_RAM_SADDR && *(uint32_t *)addr <= GD32_RAM_EADDR){
@@ -630,7 +649,6 @@ void at24cxx_write_OTA_info(void)
 		delay_1ms(5);
 	}
 }
-
 
 void w25q64_read_OTA_info(void)
 {
